@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fieldglyph — parametric pattern animator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1512; --panel:#151d18; --line:#22302a; --line2:#2f4237;
+  --ink:#e6ede8; --ink2:#95a89d; --ink3:#5f7168;
+  --acc:#3ecf8e; --acc2:#1d8a5c; --cream:#e6e4c4; --danger:#e07a5f;
+  --font:"Inter Tight",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+:root:not([data-theme="light"]){color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:13px;line-height:1.4;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:16px;padding:10px 16px;border-bottom:1px solid var(--line);flex:0 0 auto}
+header h1{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em}
+header h1 span{color:var(--ink3);font-weight:400;margin-left:8px}
+header .spacer{flex:1}
+.btn{background:var(--panel);border:1px solid var(--line2);color:var(--ink);font:inherit;padding:6px 11px;border-radius:5px;cursor:pointer}
+.btn:hover{border-color:var(--acc2)}
+.btn.primary{background:var(--acc);color:#07110c;border-color:var(--acc);font-weight:600}
+.btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.btn[disabled]{opacity:.45;cursor:default}
+main{flex:1;display:grid;grid-template-columns:1fr 340px;min-height:0}
+#stage{position:relative;display:flex;align-items:center;justify-content:center;padding:24px;overflow:hidden;background:
+  radial-gradient(circle at 50% 50%, #131b16 0, var(--bg) 70%)}
+#stage canvas{max-width:100%;max-height:100%;box-shadow:0 30px 80px rgba(0,0,0,.5);image-rendering:auto}
+#stage .toolbar{position:absolute;left:24px;bottom:20px;display:flex;gap:8px;align-items:center;background:rgba(15,21,18,.85);border:1px solid var(--line);padding:6px 8px;border-radius:7px;backdrop-filter:blur(6px)}
+#stage .toolbar .t{font-family:var(--mono);color:var(--ink2);font-size:11px;min-width:92px}
+#scrub{width:180px;accent-color:var(--acc)}
+aside{border-left:1px solid var(--line);overflow-y:auto;background:var(--panel);scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+details{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;padding:11px 16px;font-weight:600;list-style:none;display:flex;align-items:center;user-select:none}
+summary::after{content:"";margin-left:auto;width:6px;height:6px;border-right:1px solid var(--ink3);border-bottom:1px solid var(--ink3);transform:rotate(-45deg);transition:transform .15s}
+details[open] summary::after{transform:rotate(45deg)}
+.body{padding:4px 16px 14px;display:flex;flex-direction:column;gap:9px}
+.row{display:grid;grid-template-columns:118px 1fr 44px;align-items:center;gap:8px}
+.row label{color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .v{font-family:var(--mono);font-size:11px;color:var(--ink3);text-align:right}
+.row.wide{grid-template-columns:118px 1fr}
+input[type=range]{width:100%;accent-color:var(--acc);height:20px}
+select,input[type=text],input[type=number]{width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--ink);font:inherit;padding:5px 7px;border-radius:4px}
+input[type=color]{width:100%;height:26px;padding:0;border:1px solid var(--line2);border-radius:4px;background:none}
+input[type=checkbox]{accent-color:var(--acc);width:16px;height:16px;justify-self:start}
+.swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.swatches input{height:28px}
+.hint{color:var(--ink3);font-size:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.curve{display:grid;grid-template-columns:1fr;gap:6px}
+.curve canvas{width:100%;aspect-ratio:1;background:var(--bg);border:1px solid var(--line2);border-radius:4px;cursor:crosshair;touch-action:none}
+.curve .vals{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.drop{border:1px dashed var(--line2);border-radius:6px;padding:14px;text-align:center;color:var(--ink2);cursor:pointer}
+.drop.on{border-color:var(--acc);color:var(--acc)}
+.drop input{display:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--bg);border:1px solid var(--line2);border-radius:20px;padding:4px 10px;cursor:pointer;color:var(--ink2)}
+.chip:hover{color:var(--ink);border-color:var(--acc2)}
+#status{font-family:var(--mono);font-size:11px;color:var(--ink2);margin-left:auto}
+progress{width:100%;height:6px;accent-color:var(--acc)}
+@media (max-width:860px){main{grid-template-columns:1fr;grid-template-rows:55vh 1fr}aside{border-left:0;border-top:1px solid var(--line)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Fieldglyph <span>parametric pattern animator</span></h1>
+  <div class="spacer"></div>
+  <span id="status"></span>
+  <button class="btn" id="btnRandom">Shuffle</button>
+  <button class="btn" id="btnLoad">Load JSON</button>
+  <input type="file" id="fileJson" accept=".json" hidden>
+  <button class="btn" id="btnJson">Save JSON</button>
+  <button class="btn" id="btnHtml">Export HTML</button>
+  <button class="btn" id="btnSvg">Save SVG</button>
+  <button class="btn" id="btnPng">Save PNG</button>
+</header>
+<main>
+  <section id="stage">
+    <canvas id="cv"></canvas>
+    <div class="toolbar">
+      <button class="btn" id="btnPlay">Pause</button>
+      <input type="range" id="scrub" min="0" max="1000" value="0">
+      <span class="t" id="tcode">0.00s</span>
+    </div>
+  </section>
+  <aside id="panel"></aside>
+</main>
+
+<script id="core">
+/* ---------- Parameters ---------- */
+const P = {
+  W:1200, H:486, bg:'#0d1410',
+  cols:56, rows:22, offsetX:0, offsetY:0, cellAspect:1.0,
+  source:'wedge', channel:'lum', invert:false, mediaFit:'cover',
+  shapeCount:2, slope:0.55, spread:0.34, softness:0.45, stair:6, direction:'ltr', travel:1.0, secondaryPhase:0.5,
+  noiseScale:3.2, noiseSpeed:0.6, waveFreq:2.0, waveAngle:30,
+  centerX:0.5, centerY:0.5, rings:3, ringWidth:0.08, trail:0.5, beamWidth:40, cycles:1, arms:2, falloff:1.0,
+  gain:1.0, lift:0.0, gamma:1.0, valueCurve:[0.25,0.1,0.75,0.9], useValueCurve:false,
+  // shapes
+  shapeA:'vbar', shapeB:'block', blend:'value', blendAt:0.72, morphEase:'sineInOut', morphCycles:1, morphCurve:[0.42,0,0.58,1],
+  showAt:0.06, sizeMin:0.12, sizeMax:1.0, scaleX:1.0, scaleY:1.0, thickness:0.18, rotation:0, rotByValue:0, spin:0, mergeBlocks:true, sizeCurve:'linear',
+  // colour
+  colorMode:'row', colorA:'#3ecf8e', colorB:'#e6e4c4', hueShift:0, brightByValue:0.35, mediaColor:false, mediaSat:1.0,
+  pal:['#3ecf8e','#1f9d61','#1a6b45','#e6e4c4','#8fd9a8','#2b7a4b'],
+  // motion
+  duration:4.0, speed:1.0, easing:'cubicInOut', bezier:[0.42,0,0.58,1], loop:'loop', hold:0, stagger:0.0, staggerAxis:'x', staggerCurve:'sineInOut',
+  reveal:true, revealWidth:0.3,
+  fps:30, exportSeconds:4, gifScale:0.5, gifFps:15
+};
+
+/* ---------- Easing ---------- */
+const E = {
+  linear:t=>t,
+  quadIn:t=>t*t, quadOut:t=>t*(2-t), quadInOut:t=>t<.5?2*t*t:-1+(4-2*t)*t,
+  cubicIn:t=>t**3, cubicOut:t=>1-(1-t)**3, cubicInOut:t=>t<.5?4*t**3:1-(-2*t+2)**3/2,
+  quartInOut:t=>t<.5?8*t**4:1-(-2*t+2)**4/2,
+  expoIn:t=>t===0?0:2**(10*t-10), expoOut:t=>t===1?1:1-2**(-10*t), expoInOut:t=>t===0?0:t===1?1:t<.5?2**(20*t-10)/2:(2-2**(-20*t+10))/2,
+  sineIn:t=>1-Math.cos(t*Math.PI/2), sineOut:t=>Math.sin(t*Math.PI/2), sineInOut:t=>-(Math.cos(Math.PI*t)-1)/2,
+  circInOut:t=>t<.5?(1-Math.sqrt(1-(2*t)**2))/2:(Math.sqrt(1-(-2*t+2)**2)+1)/2,
+  backIn:t=>2.70158*t**3-1.70158*t*t, backOut:t=>1+2.70158*(t-1)**3+1.70158*(t-1)**2,
+  backInOut:t=>{const c=2.5949;return t<.5?((2*t)**2*((c+1)*2*t-c))/2:((2*t-2)**2*((c+1)*(t*2-2)+c)+2)/2},
+  elasticOut:t=>t===0?0:t===1?1:2**(-10*t)*Math.sin((t*10-.75)*(2*Math.PI/3))+1,
+  bounceOut:t=>{const n=7.5625,d=2.75;if(t<1/d)return n*t*t;if(t<2/d)return n*(t-=1.5/d)*t+.75;if(t<2.5/d)return n*(t-=2.25/d)*t+.9375;return n*(t-=2.625/d)*t+.984375},
+  steps4:t=>Math.floor(t*4)/4, steps8:t=>Math.floor(t*8)/8,
+  bezier:t=>cubicBezier(P.bezier,t), morphBezier:t=>cubicBezier(P.morphCurve,t)
+};
+function cubicBezier([x1,y1,x2,y2],t){
+  const cx=3*x1,bx=3*(x2-x1)-cx,ax=1-cx-bx, cy=3*y1,by=3*(y2-y1)-cy,ay=1-cy-by;
+  let u=t;for(let i=0;i<8;i++){const x=((ax*u+bx)*u+cx)*u-t;const d=(3*ax*u+2*bx)*u+cx;if(Math.abs(x)<1e-5||Math.abs(d)<1e-6)break;u-=x/d;}
+  u=Math.min(1,Math.max(0,u));return ((ay*u+by)*u+cy)*u;
+}
+const clamp01=v=>Math.min(1,Math.max(0,v));
+const ease=(name,t)=>(E[name]||E.linear)(clamp01(t));
+
+/* ---------- Noise ---------- */
+const perm=new Uint8Array(512);{const p=[];for(let i=0;i<256;i++)p[i]=i;let s=1337;for(let i=255;i>0;i--){s=(s*16807)%2147483647;const j=s%(i+1);[p[i],p[j]]=[p[j],p[i]]}for(let i=0;i<512;i++)perm[i]=p[i&255]}
+const fade=t=>t*t*t*(t*(t*6-15)+10);
+function noise2(x,y){const X=Math.floor(x)&255,Y=Math.floor(y)&255;x-=Math.floor(x);y-=Math.floor(y);const u=fade(x),v=fade(y);
+  const g=(h,x,y)=>{h&=3;return (h<2?x:y)*((h&1)?-1:1)+((h<2)?y:x)*((h&2)?-1:1)*0.5};
+  const A=perm[X]+Y,B=perm[X+1]+Y;const l=(a,b,t)=>a+t*(b-a);
+  return l(l(g(perm[A],x,y),g(perm[B],x-1,y),u),l(g(perm[A+1],x,y-1),g(perm[B+1],x-1,y-1),u),v)*0.7+0.5;}
+const hash=(i,j)=>{let h=(i*374761393+j*668265263)|0;h=(h^(h>>13))*1274126177;return ((h^(h>>16))>>>0)/4294967295};
+
+/* ---------- Media ---------- */
+const media={el:null,kind:null,cv:document.createElement('canvas'),ctx:null,data:null,w:0,h:0};
+media.ctx=media.cv.getContext('2d',{willReadFrequently:true});
+function sampleMedia(){
+  const el=media.el;if(!el)return false;
+  const ew=media.kind==='video'?el.videoWidth:el.naturalWidth,eh=media.kind==='video'?el.videoHeight:el.naturalHeight;
+  if(!ew||!eh)return false;
+  const cw=P.cols,ch=P.rows;
+  if(media.cv.width!==cw||media.cv.height!==ch){media.cv.width=cw;media.cv.height=ch;}
+  const c=media.ctx;c.clearRect(0,0,cw,ch);
+  const sa=ew/eh,da=P.W/P.H;let sx=0,sy=0,sw=ew,sh=eh;
+  if(P.mediaFit==='cover'){if(sa>da){sw=eh*da;sx=(ew-sw)/2}else{sh=ew/da;sy=(eh-sh)/2}}
+  if(P.mediaFit==='contain'){let dw=cw,dh=ch,dx=0,dy=0;if(sa>da){dh=cw/sa;dy=(ch-dh)/2}else{dw=ch*sa;dx=(cw-dw)/2}c.drawImage(el,0,0,ew,eh,dx,dy,dw,dh)}
+  else c.drawImage(el,sx,sy,sw,sh,0,0,cw,ch);
+  media.data=c.getImageData(0,0,cw,ch).data;media.w=cw;media.h=ch;return true;
+}
+function channelValue(r,g,b,a,mean){
+  r/=255;g/=255;b/=255;a/=255;
+  switch(P.channel){
+    case 'r':return r;case 'g':return g;case 'b':return b;case 'alpha':return a;
+    case 'lum':return 0.2126*r+0.7152*g+0.0722*b;
+    case 'hue':{const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;if(!d)return 0;let h;if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;return ((h/6)+1)%1;}
+    case 'sat':{const mx=Math.max(r,g,b),mn=Math.min(r,g,b);return mx?(mx-mn)/mx:0;}
+    case 'contrast':{const l=0.2126*r+0.7152*g+0.0722*b;return Math.min(1,Math.abs(l-mean)*2.2);}
+  }return 0;
+}
+
+/* ---------- Field ---------- */
+function fieldAt(i,j,phase,mediaMean){
+  const u=(i+0.5)/P.cols,v=(j+0.5)/P.rows;const asp=P.W/P.H;
+  const ex=(u-P.centerX)*asp,ey=v-P.centerY;const r=Math.hypot(ex,ey);
+  let val=0;const eph=ease(P.easing,phase);
+  switch(P.source){
+    case 'media':{
+      if(!media.data)break;const k=(j*media.w+i)*4;const d=media.data;
+      val=channelValue(d[k],d[k+1],d[k+2],d[k+3],mediaMean);
+      if(P.reveal){const dir=P.direction;let c=dir==='ltr'?u:dir==='rtl'?1-u:dir==='ttb'?v:dir==='btt'?1-v:(u+v)/2;
+        const pos=eph*(1+P.revealWidth*2)-P.revealWidth;val*=1-Math.min(1,Math.abs(c-pos)/P.revealWidth);}
+      break;}
+    case 'wedge':{
+      for(let k=0;k<P.shapeCount;k++){
+        const e=ease(P.easing,(phase+k*P.secondaryPhase)%1);const flip=(k%2===1)?-1:1;const dir=P.direction==='rtl'?-1:1;
+        const pad=0.15+P.spread*1.2+Math.abs(P.slope)*0.6;const path=(1+2*pad)*P.travel;
+        const horiz=(P.direction==='ltr'||P.direction==='rtl');
+        const cx=horiz?(dir>0?-pad+e*path:1+pad-e*path):0.5;
+        const cy=(P.direction==='ttb')?(-pad+e*path):(P.direction==='btt')?(1+pad-e*path):0.2+0.6*((k*0.618)%1);
+        const su=Math.floor(u*P.stair)/P.stair;const dx=(su-cx)-(v-cy)*P.slope*flip;const dy=(v-cy);
+        const d=Math.max(Math.abs(dx)/P.spread,Math.abs(dy)/(P.spread*1.4));
+        val=Math.max(val,1-Math.pow(Math.min(1,d),1/(0.05+P.softness*2)));}
+      break;}
+    case 'noise':val=clamp01((noise2(u*P.noiseScale+phase*P.noiseSpeed*3,v*P.noiseScale/asp*1.6+phase*P.noiseSpeed)-0.5)*1.8+0.5);break;
+    case 'wave':{const a=P.waveAngle*Math.PI/180;const c=u*Math.cos(a)+v*Math.sin(a);val=0.5+0.5*Math.sin((c*P.waveFreq-eph*P.cycles)*Math.PI*2);break;}
+    case 'radial':val=1-Math.min(1,Math.abs(r-eph*0.9)/P.spread);break;
+    case 'gradient':{val=clamp01((u-eph+0.5)*2);val=1-Math.abs(val-0.5)*2;break;}
+    case 'sonar':{ // expanding rings with a fading trail, several rings in flight
+      const maxR=Math.hypot(Math.max(P.centerX,1-P.centerX)*asp,Math.max(P.centerY,1-P.centerY));
+      for(let k=0;k<P.rings;k++){const rp=ease(P.easing,((phase*P.cycles)+k/P.rings)%1);const rr=rp*maxR;
+        const d=(rr-r)/(P.ringWidth*maxR); // positive = inside ring (trail side)
+        let s=d<0?Math.max(0,1+d*4):Math.exp(-d/(P.trail*2+0.01));s*=1-rp*P.falloff*0.8;val=Math.max(val,s);}
+      break;}
+    case 'radar':{ // rotating beam with angular decay trail
+      const ang=((Math.atan2(ey,ex)/(2*Math.PI))+1)%1;
+      for(let k=0;k<P.arms;k++){const beam=(ease(P.easing,phase)*P.cycles+k/P.arms)%1;let da=(beam-ang+1)%1;
+        const bw=P.beamWidth/360;let s=da<bw?1:Math.exp(-(da-bw)/(P.trail*0.4+0.005));
+        s*=1-Math.min(1,r/Math.max(0.01,(1.1*P.spread+0.4)))*P.falloff;val=Math.max(val,s);}
+      break;}
+    case 'ripple':{val=0.5+0.5*Math.cos((r*P.waveFreq*2-eph*P.cycles)*Math.PI*2);val*=1-Math.min(1,r/1.2)*P.falloff;break;}
+    case 'spiral':{const ang=Math.atan2(ey,ex)/(2*Math.PI);val=0.5+0.5*Math.sin((ang*P.arms+r*P.waveFreq*2-eph*P.cycles)*Math.PI*2);break;}
+    case 'scan':{const dir=P.direction;let c=dir==='ltr'?u:dir==='rtl'?1-u:dir==='ttb'?v:dir==='btt'?1-v:(u+v)/2;
+      const pos=(eph*P.cycles)%1*1.2-0.1;const d=pos-c;val=d<0?Math.max(0,1+d/0.02):Math.exp(-d/(P.trail*0.5+0.01));break;}
+    case 'pulse':{val=0.5+0.5*Math.sin(eph*P.cycles*Math.PI*2+hash(i,j)*P.spread*6);break;}
+  }
+  if(P.stagger>0){const c=P.staggerAxis==='x'?u:P.staggerAxis==='y'?v:(u+v)/2;val*=0.6+0.4*ease(P.staggerCurve,((phase-c*P.stagger)%1+1)%1);}
+  if(P.invert)val=1-val;
+  val=clamp01(val*P.gain+P.lift);
+  if(P.gamma!==1)val=Math.pow(val,P.gamma);
+  if(P.useValueCurve)val=cubicBezier(P.valueCurve,val);
+  return val;
+}
+
+/* ---------- Shapes: each is a radius function r(θ) on the unit box, sampled to N points so any pair can morph ---------- */
+const N=48;
+const polyR={ // returns radius for angle a such that the shape fits in [-1,1]
+  circle:a=>1,
+  square:a=>1/Math.max(Math.abs(Math.cos(a)),Math.abs(Math.sin(a))),
+  diamond:a=>1/(Math.abs(Math.cos(a))+Math.abs(Math.sin(a))),
+  hexagon:a=>{const s=Math.PI/3;const m=((a%s)+s)%s;return Math.cos(s/2)/Math.cos(m-s/2)},
+  triangle:a=>{const s=2*Math.PI/3;const m=(((a+Math.PI/2)%s)+s)%s;return 0.5/Math.cos(m-s/2)},
+  star:a=>0.5+0.5*Math.pow(0.5+0.5*Math.cos(a*5),0.6),
+  cross:a=>{const t=P.thickness*1.6;const c=Math.abs(Math.cos(a)),s=Math.abs(Math.sin(a));return Math.min(1/Math.max(c,s),Math.max(t/Math.max(s,1e-6),t/Math.max(c,1e-6)))},
+  vbar:a=>{const w=P.thickness;const c=Math.abs(Math.cos(a)),s=Math.abs(Math.sin(a));return Math.min(w/Math.max(c,1e-6),1/Math.max(s,1e-6))},
+  hbar:a=>{const w=P.thickness;const c=Math.abs(Math.cos(a)),s=Math.abs(Math.sin(a));return Math.min(1/Math.max(c,1e-6),w/Math.max(s,1e-6))},
+  pill:a=>{const w=Math.min(0.95,P.thickness*2);const c=Math.cos(a),s=Math.sin(a);const rect=Math.min(w/Math.max(Math.abs(c),1e-6),(1-w)/Math.max(Math.abs(s),1e-6));const cy=Math.sign(s)*(1-w);const b=cy*s,disc=b*b-(cy*cy-w*w);const cap=disc>=0?b+Math.sqrt(disc):0;return Math.max(rect,cap)},
+  block:a=>1/Math.max(Math.abs(Math.cos(a)),Math.abs(Math.sin(a))),
+  none:a=>0,
+};
+const SHAPES=Object.keys(polyR);
+function shapePts(name){const f=polyR[name]||polyR.circle;const out=new Float32Array(N);for(let k=0;k<N;k++)out[k]=f(k/N*Math.PI*2);return out;}
+let ptsA,ptsB,lastKey='';
+function ensurePts(){const key=P.shapeA+'|'+P.shapeB+'|'+P.thickness;if(key!==lastKey){ptsA=shapePts(P.shapeA);ptsB=shapePts(P.shapeB);lastKey=key;pathCache.clear();}}
+function mixFor(i,j,val,phase){ // 0 = shape A, 1 = shape B
+  switch(P.blend){
+    case 'none':return 0;
+    case 'value':return val>=P.blendAt?1:0;
+    case 'valueMorph':return ease(P.morphEase,clamp01((val-P.blendAt*0.5)/Math.max(0.01,1-P.blendAt*0.5)));
+    case 'row':return j%2;case 'col':return i%2;case 'checker':return (i+j)%2;
+    case 'random':return hash(i,j)<0.5?1:0;
+    case 'noise':return noise2(i*0.25,j*0.25)>0.5?1:0;
+    case 'morph':{const t=(phase*P.morphCycles)%1;const pp=t<0.5?t*2:2-t*2;return ease(P.morphEase,pp);}
+    case 'morphWave':{const t=((phase*P.morphCycles)-(i+j)/(P.cols+P.rows)+2)%1;const pp=t<0.5?t*2:2-t*2;return ease(P.morphEase,pp);}
+  }return 0;
+}
+
+/* ---------- Colour ---------- */
+function hexRGB(h){const n=parseInt(h.slice(1),16);return [n>>16,(n>>8)&255,n&255]}
+function rgbStr([r,g,b]){return `rgb(${r|0},${g|0},${b|0})`}
+function lerpC(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]}
+function hueShift([r,g,b],deg){if(!deg)return [r,g,b];const a=deg*Math.PI/180,c=Math.cos(a),s=Math.sin(a);const m=[[.299+.701*c+.168*s,.587-.587*c+.330*s,.114-.114*c-.497*s],[.299-.299*c-.328*s,.587+.413*c+.035*s,.114-.114*c+.292*s],[.299-.3*c+1.25*s,.587-.588*c-1.05*s,.114+.886*c-.203*s]];return m.map(row=>Math.min(255,Math.max(0,row[0]*r+row[1]*g+row[2]*b)))}
+function satAdj([r,g,b],s){const l=.2126*r+.7152*g+.0722*b;return [l+(r-l)*s,l+(g-l)*s,l+(b-l)*s]}
+const palCache={};function palRGB(){const k=P.pal.join();if(palCache.k!==k){palCache.k=k;palCache.v=P.pal.filter(Boolean).map(hexRGB)}return palCache.v}
+function cellColor(i,j,val){
+  let c;
+  if(P.mediaColor&&media.data){const k=(j*media.w+i)*4;c=[media.data[k],media.data[k+1],media.data[k+2]];if(P.mediaSat!==1)c=satAdj(c,P.mediaSat);}
+  else{const pal=palRGB();
+    switch(P.colorMode){
+      case 'row':c=pal[j%pal.length];break;case 'col':c=pal[Math.floor(i/Math.max(1,P.cols/P.stair))%pal.length];break;
+      case 'diag':c=pal[(i+j)%pal.length];break;case 'value':c=pal[Math.min(pal.length-1,Math.floor(val*pal.length))];break;
+      case 'gradient':c=lerpC(hexRGB(P.colorA),hexRGB(P.colorB),val);break;
+      case 'radial':{const r=Math.hypot(((i+.5)/P.cols-P.centerX)*P.W/P.H,(j+.5)/P.rows-P.centerY);c=lerpC(hexRGB(P.colorA),hexRGB(P.colorB),Math.min(1,r));break;}
+      default:c=hexRGB(P.colorA);}}
+  if(P.hueShift)c=hueShift(c,P.hueShift);
+  if(P.brightByValue)c=c.map(x=>x*(1-P.brightByValue+P.brightByValue*Math.pow(val,0.6)));
+  return rgbStr(c);
+}
+
+/* ---------- Render ---------- */
+function cellGeom(){const cw=P.W/P.cols,ch=cw*P.cellAspect;const rowsH=ch*P.rows;const oy=(P.H-rowsH)/2+P.offsetY,ox=P.offsetX;return {cw,ch,ox,oy}}
+function computeCells(phase){
+  let mean=0.5;
+  if(P.source==='media'||P.mediaColor){if(sampleMedia()&&P.channel==='contrast'){let s=0;const d=media.data;for(let k=0;k<d.length;k+=4)s+=0.2126*d[k]+0.7152*d[k+1]+0.0722*d[k+2];mean=s/(d.length/4)/255;}}
+  const cells=new Float32Array(P.cols*P.rows);
+  for(let j=0;j<P.rows;j++)for(let i=0;i<P.cols;i++)cells[j*P.cols+i]=fieldAt(i,j,phase,mean);
+  return cells;
+}
+const pathCache=new Map();const MSTEPS=24;
+function shapePath(m){const step=Math.round(m*MSTEPS);const key=lastKey+'|'+step;let p=pathCache.get(key);
+  if(!p){p=new Path2D();const mm=step/MSTEPS;for(let k=0;k<N;k++){const a=k/N*Math.PI*2;const r=ptsA[k]+(ptsB[k]-ptsA[k])*mm;const x=Math.cos(a)*r,y=Math.sin(a)*r;k?p.lineTo(x,y):p.moveTo(x,y);}p.closePath();if(pathCache.size>400)pathCache.clear();pathCache.set(key,p);}
+  return p;}
+function drawShapes(c,phase,out){
+  ensurePts();const {cw,ch,ox,oy}=cellGeom();const cells=computeCells(phase);
+  const base=Math.min(cw,ch)/2;const spinA=P.spin*phase*Math.PI*2;const isBlockA=P.shapeA==='block',isBlockB=P.shapeB==='block';
+  let lastCol='';
+  for(let j=0;j<P.rows;j++){const y0=oy+j*ch,cy=y0+ch/2;
+    for(let i=0;i<P.cols;i++){
+      const val=cells[j*P.cols+i];if(val<P.showAt)continue;
+      const x0=ox+i*cw,cx=x0+cw/2;const m=mixFor(i,j,val,phase);const col=cellColor(i,j,val);if(col!==lastCol){c.fillStyle=col;lastCol=col;}
+      const isBlock=(m>=0.999&&isBlockB)||(m<=0.001&&isBlockA);
+      if(isBlock&&P.mergeBlocks){c.setTransform(1,0,0,1,0,0);const g=0.6;c.fillRect(x0-g/2,y0-g/2,cw+g,ch+g);out&&out.push(`<rect x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${cw.toFixed(2)}" height="${ch.toFixed(2)}" fill="${col}"/>`);continue;}
+      const sz=P.sizeMin+(P.sizeMax-P.sizeMin)*ease(P.sizeCurve,(val-P.showAt)/Math.max(0.001,1-P.showAt));
+      const rx=Math.max(0.01,base*sz*P.scaleX*(isBlock?cw/Math.min(cw,ch):1)),ry=Math.max(0.01,base*sz*P.scaleY*(isBlock?ch/Math.min(cw,ch):1));
+      const rot=(P.rotation+P.rotByValue*val)*Math.PI/180+spinA;const cr=Math.cos(rot),sr=Math.sin(rot);
+      c.setTransform(rx*cr,rx*sr,-ry*sr,ry*cr,cx,cy);c.fill(shapePath(m));
+      if(out){let d='';for(let k=0;k<N;k++){const a=k/N*Math.PI*2;const r=ptsA[k]+(ptsB[k]-ptsA[k])*m;const px=Math.cos(a)*r*rx,py=Math.sin(a)*r*ry;d+=(k?'L':'M')+(cx+px*cr-py*sr).toFixed(1)+' '+(cy+px*sr+py*cr).toFixed(1);}out.push(`<path d="${d}Z" fill="${col}"/>`);}
+    }}
+  c.setTransform(1,0,0,1,0,0);
+}
+function renderFrame(c,phase,out){c.fillStyle=P.bg;c.fillRect(0,0,P.W,P.H);drawShapes(c,phase,out);}
+
+/* ---------- Timeline ---------- */
+function timeToPhase(t){
+  const D=P.duration/P.speed;let ph=(t/D);
+  if(P.loop==='once')ph=Math.min(1,ph);else if(P.loop==='pingpong'){ph=ph%2;ph=ph>1?2-ph:ph;}else ph=ph%1;
+  if(P.hold>0&&P.loop!=='once'){const h=P.hold;ph=clamp01((ph-h/2)/(1-h));}
+  return ph;
+}
+</script>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let playing=true,t0=performance.now(),tAcc=0,scrubbing=false,curT=0;
+function loadMedia(file){
+  const url=URL.createObjectURL(file);media.file=file;
+  if(file.type.startsWith('video')){const v=document.createElement('video');v.src=url;v.muted=true;v.loop=true;v.playsInline=true;v.play();media.el=v;media.kind='video';}
+  else{const i=new Image();i.src=url;media.el=i;media.kind='image';}
+  P.source='media';P.mediaColor=true;syncUI();setStatus(`Loaded ${file.name}`);
+}
+function tick(now){
+  if(playing&&!scrubbing)curT=tAcc+(now-t0)/1000;
+  const ph=timeToPhase(curT);
+  if(cv.width!==P.W||cv.height!==P.H){cv.width=P.W;cv.height=P.H;}
+  renderFrame(ctx,ph);
+  const D=P.duration/P.speed;document.getElementById('tcode').textContent=`${(curT%(P.loop==='pingpong'?D*2:D)).toFixed(2)}s · ${(ph*100)|0}%`;
+  if(!scrubbing)document.getElementById('scrub').value=Math.round(ph*1000);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+document.getElementById('btnPlay').onclick=e=>{playing=!playing;if(playing)t0=performance.now();else tAcc=curT;e.target.textContent=playing?'Pause':'Play';};
+const scrub=document.getElementById('scrub');
+scrub.addEventListener('pointerdown',()=>{scrubbing=true});
+scrub.addEventListener('input',()=>{scrubbing=true;curT=scrub.value/1000*P.duration/P.speed;tAcc=curT;});
+scrub.addEventListener('pointerup',()=>{scrubbing=false;t0=performance.now();tAcc=curT;});
+
+/* ---------- Controls ---------- */
+const easeNames=Object.keys(E).filter(k=>k!=='morphBezier');
+const SCHEMA=[
+ ['Canvas',[
+  ['W','Width',{t:'range',min:320,max:2400,step:8}],['H','Height',{t:'range',min:200,max:2400,step:2}],['bg','Background',{t:'color'}],
+  ['cols','Columns',{t:'range',min:8,max:160,step:1}],['rows','Rows',{t:'range',min:4,max:120,step:1}],['cellAspect','Cell aspect',{t:'range',min:0.4,max:2.5,step:0.01}],
+  ['offsetX','Offset X',{t:'range',min:-400,max:400,step:1}],['offsetY','Offset Y',{t:'range',min:-400,max:400,step:1}],
+ ]],
+ ['Field',[
+  ['source','Animation',{t:'select',o:[['wedge','Wedge sweep'],['sonar','Sonar'],['radar','Radar'],['ripple','Ripple'],['spiral','Spiral'],['scan','Scanline'],['pulse','Pulse'],['wave','Wave'],['radial','Radial'],['gradient','Gradient'],['noise','Noise'],['media','Image / video']]}],
+  ['_media','Image / video',{t:'drop'}],
+  ['channel','Channel',{t:'select',o:[['lum','Luminosity'],['r','Red'],['g','Green'],['b','Blue'],['hue','Hue'],['sat','Saturation'],['alpha','Alpha'],['contrast','Contrast']]}],
+  ['mediaFit','Fit',{t:'select',o:['cover','contain','stretch']}],['reveal','Reveal sweep',{t:'check'}],['revealWidth','Sweep width',{t:'range',min:0.05,max:1.5,step:0.01}],
+  ['invert','Invert',{t:'check'}],['direction','Direction',{t:'select',o:[['ltr','Left → right'],['rtl','Right → left'],['ttb','Top → bottom'],['btt','Bottom → top'],['diag','Diagonal']]}],
+  ['centerX','Centre X',{t:'range',min:-0.5,max:1.5,step:0.005}],['centerY','Centre Y',{t:'range',min:-0.5,max:1.5,step:0.005}],
+  ['cycles','Cycles per loop',{t:'range',min:1,max:8,step:1}],['rings','Rings in flight',{t:'range',min:1,max:8,step:1}],['ringWidth','Ring width',{t:'range',min:0.01,max:0.5,step:0.005}],
+  ['arms','Arms',{t:'range',min:1,max:8,step:1}],['beamWidth','Beam width °',{t:'range',min:1,max:180,step:1}],['trail','Trail',{t:'range',min:0,max:2,step:0.01}],['falloff','Distance falloff',{t:'range',min:0,max:1,step:0.01}],
+  ['shapeCount','Wedges',{t:'range',min:1,max:6,step:1}],['slope','Wedge slope',{t:'range',min:-2,max:2,step:0.01}],['spread','Spread',{t:'range',min:0.05,max:1.2,step:0.01}],
+  ['softness','Softness',{t:'range',min:0,max:1,step:0.01}],['stair','Stair steps',{t:'range',min:2,max:80,step:1}],['travel','Travel distance',{t:'range',min:0.3,max:2,step:0.01}],['secondaryPhase','Wedge phase offset',{t:'range',min:0,max:1,step:0.01}],
+  ['noiseScale','Noise scale',{t:'range',min:0.5,max:12,step:0.1}],['noiseSpeed','Noise drift',{t:'range',min:0,max:3,step:0.01}],['waveFreq','Frequency',{t:'range',min:0.2,max:10,step:0.1}],['waveAngle','Wave angle',{t:'range',min:-180,max:180,step:1}],
+ ]],
+ ['Value shaping',[
+  ['gain','Gain',{t:'range',min:0,max:3,step:0.01}],['lift','Lift',{t:'range',min:-1,max:1,step:0.01}],['gamma','Gamma',{t:'range',min:0.2,max:4,step:0.01}],
+  ['useValueCurve','Use response curve',{t:'check'}],['valueCurve','Response curve',{t:'curve'}],
+ ]],
+ ['Shapes',[
+  ['shapeA','Shape A',{t:'select',o:SHAPES}],['shapeB','Shape B',{t:'select',o:SHAPES}],
+  ['blend','Blend A / B',{t:'select',o:[['none','A only'],['value','B above threshold'],['valueMorph','Morph by value'],['morph','Morph over time'],['morphWave','Morph wave'],['row','Alternate rows'],['col','Alternate columns'],['checker','Checkerboard'],['random','Random'],['noise','Noise patches']]}],
+  ['blendAt','Threshold',{t:'range',min:0,max:1,step:0.01}],['morphEase','Morph easing',{t:'select',o:[...easeNames.filter(k=>k!=='bezier'),'morphBezier']}],['morphCycles','Morphs per loop',{t:'range',min:0.5,max:8,step:0.5}],['morphCurve','Morph curve',{t:'curve'}],
+  ['showAt','Visible above',{t:'range',min:0,max:1,step:0.01}],['sizeMin','Size min',{t:'range',min:0,max:1.5,step:0.01}],['sizeMax','Size max',{t:'range',min:0,max:2,step:0.01}],['sizeCurve','Size curve',{t:'select',o:easeNames}],
+  ['scaleX','Width',{t:'range',min:0.05,max:3,step:0.01}],['scaleY','Height / length',{t:'range',min:0.05,max:3,step:0.01}],['thickness','Bar thickness',{t:'range',min:0.02,max:1,step:0.01}],
+  ['rotation','Rotation °',{t:'range',min:-180,max:180,step:1}],['rotByValue','Rotate by value °',{t:'range',min:-360,max:360,step:1}],['spin','Spins per loop',{t:'range',min:-4,max:4,step:0.25}],
+  ['mergeBlocks','Merge blocks',{t:'check'}],
+ ]],
+ ['Colour',[
+  ['mediaColor','Take colour from media',{t:'check'}],['mediaSat','Media saturation',{t:'range',min:0,max:2.5,step:0.05}],
+  ['colorMode','Colour by',{t:'select',o:[['row','Row'],['col','Stair column'],['diag','Diagonal'],['value','Value (palette)'],['gradient','Value (A → B)'],['radial','Distance (A → B)'],['single','Single (A)']]}],
+  ['colorA','Colour A',{t:'color'}],['colorB','Colour B',{t:'color'}],['pal','Palette',{t:'pal'}],
+  ['hueShift','Hue shift °',{t:'range',min:-180,max:180,step:1}],['brightByValue','Darken low values',{t:'range',min:0,max:1,step:0.01}],
+ ]],
+ ['Motion',[
+  ['duration','Loop duration (s)',{t:'range',min:0.5,max:20,step:0.1}],['speed','Speed',{t:'range',min:0.1,max:4,step:0.05}],
+  ['loop','Loop mode',{t:'select',o:['loop','pingpong','once']}],['hold','Hold at ends',{t:'range',min:0,max:0.6,step:0.01}],
+  ['easing','Easing',{t:'select',o:easeNames}],['bezier','Custom bezier',{t:'curve'}],
+  ['stagger','Stagger',{t:'range',min:0,max:1,step:0.01}],['staggerAxis','Stagger axis',{t:'select',o:['x','y','diag']}],['staggerCurve','Stagger curve',{t:'select',o:easeNames.filter(k=>k!=='bezier')}],
+ ]],
+ ['Export',[
+  ['fps','Video fps',{t:'range',min:10,max:60,step:1}],['exportSeconds','Length (s)',{t:'range',min:1,max:30,step:0.5}],
+  ['gifFps','GIF fps',{t:'range',min:5,max:30,step:1}],['gifScale','GIF scale',{t:'range',min:0.2,max:1,step:0.05}],
+  ['_export','',{t:'export'}],
+ ]],
+];
+const panel=document.getElementById('panel');const inputs={};
+function fmt(v){return typeof v==='number'?(Number.isInteger(v)?v:v.toFixed(2)):''}
+function build(){
+  SCHEMA.forEach(([title,rows],gi)=>{
+    const d=document.createElement('details');d.open=[1,3].includes(gi);d.innerHTML=`<summary>${title}</summary>`;const b=document.createElement('div');b.className='body';d.appendChild(b);
+    rows.forEach(([key,label,o])=>{
+      const r=document.createElement('div');r.className='row';r.dataset.key=key;
+      if(o.t==='range'){r.innerHTML=`<label>${label}</label><input type="range" min="${o.min}" max="${o.max}" step="${o.step}"><span class="v"></span>`;const inp=r.querySelector('input');inp.value=P[key];r.querySelector('.v').textContent=fmt(P[key]);inp.oninput=()=>{P[key]=+inp.value;r.querySelector('.v').textContent=fmt(P[key]);onChange(key)};inputs[key]=inp;}
+      else if(o.t==='select'){r.className='row wide';const opts=o.o.map(x=>Array.isArray(x)?x:[x,x]).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');r.innerHTML=`<label>${label}</label><select>${opts}</select>`;const s=r.querySelector('select');s.value=P[key];s.onchange=()=>{P[key]=s.value;onChange(key)};inputs[key]=s;}
+      else if(o.t==='color'){r.className='row wide';r.innerHTML=`<label>${label}</label><input type="color">`;const i=r.querySelector('input');i.value=P[key];i.oninput=()=>{P[key]=i.value};inputs[key]=i;}
+      else if(o.t==='check'){r.className='row wide';r.innerHTML=`<label>${label}</label><input type="checkbox">`;const i=r.querySelector('input');i.checked=P[key];i.onchange=()=>{P[key]=i.checked;onChange(key)};inputs[key]=i;}
+      else if(o.t==='pal'){r.className='row wide';r.style.gridTemplateColumns='1fr';r.innerHTML=`<div class="swatches"></div>`;const sw=r.querySelector('.swatches');for(let k=0;k<6;k++){const i=document.createElement('input');i.type='color';i.value=P.pal[k]||'#000000';i.oninput=()=>{P.pal[k]=i.value};sw.appendChild(i)}inputs.pal=sw;}
+      else if(o.t==='curve'){r.className='row wide';r.style.gridTemplateColumns='1fr';r.innerHTML=`<div class="curve"><label>${label}</label><canvas width="240" height="240"></canvas><div class="vals"></div></div>`;makeCurve(r.querySelector('canvas'),r.querySelector('.vals'),key);}
+      else if(o.t==='drop'){r.className='row wide';r.style.gridTemplateColumns='1fr';r.innerHTML=`<label class="drop">Drop an image or video here, or click to choose<input type="file" accept="image/*,video/*"></label>`;const dz=r.querySelector('.drop'),fi=r.querySelector('input');fi.onchange=()=>fi.files[0]&&loadMedia(fi.files[0]);dz.ondragover=e=>{e.preventDefault();dz.classList.add('on')};dz.ondragleave=()=>dz.classList.remove('on');dz.ondrop=e=>{e.preventDefault();dz.classList.remove('on');e.dataTransfer.files[0]&&loadMedia(e.dataTransfer.files[0])};}
+      else if(o.t==='export'){r.className='row wide';r.style.gridTemplateColumns='1fr';r.innerHTML=`<div class="grid2"><button class="btn primary" id="btnWebm">Export video (WebM)</button><button class="btn" id="btnGif">Export GIF</button></div><progress id="prog" value="0" max="1" style="display:none"></progress><span class="hint">Video records the live canvas in real time. GIF renders offline frame by frame.</span>`;}
+      b.appendChild(r);
+    });
+    panel.appendChild(d);
+  });
+  const d=document.createElement('details');d.open=true;d.innerHTML=`<summary>Presets</summary><div class="body"><div class="chips">${Object.keys(PRESETS).map(k=>`<span class="chip" data-p="${k}">${k}</span>`).join('')}</div></div>`;panel.prepend(d);
+  d.querySelectorAll('.chip').forEach(c=>c.onclick=()=>applyPreset(c.dataset.p));
+  syncUI();
+}
+function onChange(key){if(['source','blend','colorMode','mediaColor','shapeA','shapeB'].includes(key))syncUI();}
+function syncUI(){
+  for(const k in inputs){const el=inputs[k];if(k==='pal'){[...el.children].forEach((i,n)=>i.value=P.pal[n]||'#000000');continue}if(el.type==='checkbox')el.checked=P[k];else el.value=P[k];const v=el.parentElement.querySelector('.v');if(v)v.textContent=fmt(P[k]);}
+  const s=P.source;const show=(keys,on)=>keys.forEach(k=>{const r=panel.querySelector(`[data-key="${k}"]`);if(r)r.style.display=on?'':'none'});
+  show(['channel','mediaFit','reveal','revealWidth'],s==='media');
+  show(['shapeCount','slope','softness','stair','travel','secondaryPhase'],s==='wedge');
+  show(['spread'],['wedge','radial','radar','pulse'].includes(s));
+  show(['noiseScale','noiseSpeed'],s==='noise');show(['waveFreq'],['wave','ripple','spiral'].includes(s));show(['waveAngle'],s==='wave');
+  show(['direction'],['wedge','media','scan'].includes(s));
+  show(['centerX','centerY'],['sonar','radar','ripple','spiral','radial'].includes(s)||P.colorMode==='radial');
+  show(['cycles'],['sonar','radar','ripple','spiral','scan','pulse','wave'].includes(s));
+  show(['rings','ringWidth'],s==='sonar');show(['arms'],['radar','spiral'].includes(s));show(['beamWidth'],s==='radar');
+  show(['trail'],['sonar','radar','scan'].includes(s));show(['falloff'],['sonar','radar','ripple'].includes(s));
+  show(['blendAt'],['value','valueMorph'].includes(P.blend));show(['morphEase','morphCurve'],['valueMorph','morph','morphWave'].includes(P.blend));show(['morphCycles'],['morph','morphWave'].includes(P.blend));
+  show(['thickness'],['vbar','hbar','cross','pill'].includes(P.shapeA)||['vbar','hbar','cross','pill'].includes(P.shapeB));
+  show(['mergeBlocks'],P.shapeA==='block'||P.shapeB==='block');
+  show(['mediaSat'],P.mediaColor);show(['colorMode','colorA','colorB','pal'],!P.mediaColor);
+  show(['pal'],!P.mediaColor&&['row','col','diag','value'].includes(P.colorMode));show(['colorB'],!P.mediaColor&&['gradient','radial'].includes(P.colorMode));
+  document.querySelectorAll('.curve canvas').forEach(c=>c._draw&&c._draw());
+}
+function makeCurve(c,vals,key){
+  const g=c.getContext('2d');let drag=-1;
+  const draw=()=>{const [x1,y1,x2,y2]=P[key];g.clearRect(0,0,c.width,c.height);const W=c.width,H=c.height;
+    g.strokeStyle='#22302a';g.lineWidth=1;for(let i=1;i<4;i++){g.beginPath();g.moveTo(W*i/4,0);g.lineTo(W*i/4,H);g.moveTo(0,H*i/4);g.lineTo(W,H*i/4);g.stroke();}
+    g.strokeStyle='#5f7168';g.beginPath();g.moveTo(0,H);g.lineTo(x1*W,H-y1*H);g.moveTo(W,0);g.lineTo(x2*W,H-y2*H);g.stroke();
+    g.strokeStyle='#3ecf8e';g.lineWidth=2;g.beginPath();g.moveTo(0,H);g.bezierCurveTo(x1*W,H-y1*H,x2*W,H-y2*H,W,0);g.stroke();
+    g.fillStyle='#e6e4c4';[[x1,y1],[x2,y2]].forEach(([x,y])=>{g.beginPath();g.arc(x*W,H-y*H,6,0,7);g.fill()});
+    vals.textContent=`cubic-bezier(${P[key].map(v=>v.toFixed(2)).join(', ')})`;};
+  c._draw=draw;draw();
+  const pos=e=>{const r=c.getBoundingClientRect();return [(e.clientX-r.left)/r.width*c.width,(e.clientY-r.top)/r.height*c.height]};
+  c.onpointerdown=e=>{const [px,py]=pos(e);const [x1,y1,x2,y2]=P[key];const d1=Math.hypot(px-x1*c.width,py-(1-y1)*c.height),d2=Math.hypot(px-x2*c.width,py-(1-y2)*c.height);drag=d1<d2?0:1;c.setPointerCapture(e.pointerId);};
+  c.onpointermove=e=>{if(drag<0)return;const [px,py]=pos(e);let x=clamp01(px/c.width),y=Math.min(1.5,Math.max(-0.5,1-py/c.height));P[key][drag*2]=x;P[key][drag*2+1]=y;
+    if(key==='bezier'&&P.easing!=='bezier'){P.easing='bezier';inputs.easing.value='bezier'}
+    if(key==='valueCurve'&&!P.useValueCurve){P.useValueCurve=true;inputs.useValueCurve.checked=true}
+    if(key==='morphCurve'&&P.morphEase!=='morphBezier'){P.morphEase='morphBezier';inputs.morphEase.value='morphBezier'}draw();};
+  c.onpointerup=()=>{drag=-1};
+}
+
+/* ---------- Presets ---------- */
+const PRESETS={
+  'Reference wedge':{source:'wedge',cols:56,rows:22,shapeCount:2,slope:0.55,spread:0.34,softness:0.45,stair:6,easing:'cubicInOut',duration:4,travel:1,hold:0,shapeA:'vbar',shapeB:'block',blend:'value',blendAt:0.72,thickness:0.18,sizeMin:0.12,sizeMax:1,colorMode:'row',mediaColor:false,brightByValue:0.35,scaleX:1,scaleY:1,rotation:0,spin:0},
+  'Sonar':{source:'sonar',cols:72,rows:30,centerX:0.5,centerY:0.5,rings:3,ringWidth:0.06,trail:0.6,falloff:0.5,easing:'quadOut',cycles:1,duration:3,shapeA:'circle',shapeB:'diamond',blend:'valueMorph',blendAt:0.5,sizeMin:0.05,sizeMax:0.95,colorMode:'gradient',colorA:'#1a6b45',colorB:'#8fd9a8',mediaColor:false,brightByValue:0.2,scaleX:1,scaleY:1,spin:0},
+  'Radar':{source:'radar',cols:80,rows:34,centerX:0.5,centerY:0.5,arms:1,beamWidth:14,trail:0.8,falloff:0.6,spread:0.4,easing:'linear',cycles:1,duration:4,shapeA:'square',shapeB:'circle',blend:'morphWave',morphCycles:2,morphEase:'sineInOut',sizeMin:0.08,sizeMax:0.9,colorMode:'gradient',colorA:'#2b7a4b',colorB:'#e6e4c4',mediaColor:false,brightByValue:0.4,scaleX:1,scaleY:1,spin:0},
+  'Ripple morph':{source:'ripple',cols:64,rows:28,waveFreq:2.5,cycles:2,falloff:0.4,easing:'linear',shapeA:'hexagon',shapeB:'star',blend:'morph',morphCycles:1,morphEase:'sineInOut',sizeMin:0.1,sizeMax:1.05,colorMode:'value',mediaColor:false,spin:0.5,scaleX:1,scaleY:1,brightByValue:0.3},
+  'Scan bars':{source:'scan',cols:48,rows:20,direction:'ltr',trail:0.9,cycles:1,easing:'cubicInOut',shapeA:'hbar',shapeB:'pill',blend:'valueMorph',blendAt:0.4,thickness:0.25,sizeMin:0.3,sizeMax:1.1,scaleX:1,scaleY:1,rotByValue:-90,colorMode:'diag',mediaColor:false,spin:0,brightByValue:0.5},
+  'Spiral crosses':{source:'spiral',cols:60,rows:26,arms:3,waveFreq:1.5,cycles:1,easing:'linear',shapeA:'cross',shapeB:'circle',blend:'valueMorph',blendAt:0.3,thickness:0.2,sizeMin:0.1,sizeMax:1,spin:1,colorMode:'radial',colorA:'#3ecf8e',colorB:'#1a3d2b',mediaColor:false,brightByValue:0.3,scaleX:1,scaleY:1},
+  'Media portrait':{source:'media',channel:'lum',reveal:true,revealWidth:0.4,direction:'ltr',easing:'cubicInOut',mediaColor:true,mediaSat:1.2,cols:96,rows:54,cellAspect:1,shapeA:'circle',shapeB:'square',blend:'valueMorph',blendAt:0.6,showAt:0.05,sizeMin:0.05,sizeMax:1.05,scaleX:1,scaleY:1,spin:0,brightByValue:0.2},
+};
+function applyPreset(n){Object.assign(P,JSON.parse(JSON.stringify(PRESETS[n])));syncUI();}
+document.getElementById('btnRandom').onclick=()=>{const r=(a,b)=>a+Math.random()*(b-a);const pick=a=>a[Math.floor(Math.random()*a.length)];
+  Object.assign(P,{source:pick(['wedge','sonar','radar','ripple','spiral','scan','wave','noise']),slope:r(-1.2,1.2),spread:r(0.15,0.6),softness:r(0.1,0.9),stair:Math.round(r(3,20)),shapeCount:Math.round(r(1,4)),rings:Math.round(r(1,5)),arms:Math.round(r(1,4)),trail:r(0.2,1.2),easing:pick(easeNames.filter(k=>k!=='bezier')),shapeA:pick(SHAPES.filter(s=>s!=='none')),shapeB:pick(SHAPES.filter(s=>s!=='none')),blend:pick(['value','valueMorph','morph','morphWave','checker']),colorMode:pick(['row','col','diag','value','gradient','radial']),rotation:pick([0,0,45,30]),spin:pick([0,0,0.5,1,-1])});syncUI();};
+
+/* ---------- Files ---------- */
+function download(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}
+function setStatus(s){document.getElementById('status').textContent=s;}
+document.getElementById('btnJson').onclick=()=>download('fieldglyph.json',new Blob([JSON.stringify(P,null,2)],{type:'application/json'}));
+document.getElementById('btnLoad').onclick=()=>document.getElementById('fileJson').click();
+document.getElementById('fileJson').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{Object.assign(P,JSON.parse(t));syncUI();setStatus('Preset loaded')}catch{setStatus('That file is not a Fieldglyph JSON preset')}})};
+document.getElementById('btnPng').onclick=()=>cv.toBlob(b=>download('fieldglyph.png',b));
+document.getElementById('btnSvg').onclick=()=>{
+  const out=[];const oc=document.createElement('canvas');oc.width=P.W;oc.height=P.H;renderFrame(oc.getContext('2d'),timeToPhase(curT),out);
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${P.W}" height="${P.H}" viewBox="0 0 ${P.W} ${P.H}"><rect width="${P.W}" height="${P.H}" fill="${P.bg}"/>${out.join('')}</svg>`;
+  download('fieldglyph-frame.svg',new Blob([svg],{type:'image/svg+xml'}));};
+
+/* ---------- Video export ---------- */
+let rec=null;
+function bindExport(){
+  document.getElementById('btnWebm').onclick=function(){
+    if(rec){rec.stop();return}
+    if(!cv.captureStream){setStatus('This browser cannot record the canvas');return}
+    const stream=cv.captureStream(P.fps);const mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
+    rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:12e6});const chunks=[];rec.ondataavailable=e=>chunks.push(e.data);
+    rec.onstop=()=>{download('fieldglyph.webm',new Blob(chunks,{type:'video/webm'}));rec=null;this.textContent='Export video (WebM)';setStatus('Video saved');};
+    tAcc=0;curT=0;t0=performance.now();playing=true;document.getElementById('btnPlay').textContent='Pause';
+    rec.start();this.textContent='Stop recording';setStatus('Recording…');
+    setTimeout(()=>rec&&rec.stop(),P.exportSeconds*1000);
+  };
+  document.getElementById('btnGif').onclick=async function(){
+    const prog=document.getElementById('prog');prog.style.display='';this.disabled=true;
+    const w=Math.round(P.W*P.gifScale),h=Math.round(P.H*P.gifScale);const oc=document.createElement('canvas');oc.width=w;oc.height=h;const g=oc.getContext('2d');
+    const n=Math.round(P.exportSeconds*P.gifFps);const delay=Math.round(100/P.gifFps);const enc=new GIFEncoder(w,h);
+    const frameCv=document.createElement('canvas');frameCv.width=P.W;frameCv.height=P.H;const fc=frameCv.getContext('2d');
+    if(media.kind==='video')media.el.pause();
+    for(let k=0;k<n;k++){
+      const t=k/P.gifFps;if(media.kind==='video'){media.el.currentTime=t%media.el.duration;await new Promise(r=>media.el.onseeked=r);}
+      renderFrame(fc,timeToPhase(t));g.drawImage(frameCv,0,0,w,h);enc.addFrame(g.getImageData(0,0,w,h).data,delay);
+      prog.value=(k+1)/n;setStatus(`GIF ${k+1}/${n}`);await new Promise(r=>setTimeout(r,0));
+    }
+    download('fieldglyph.gif',new Blob([enc.finish()],{type:'image/gif'}));
+    if(media.kind==='video')media.el.play();prog.style.display='none';this.disabled=false;setStatus('GIF saved');
+  };
+}
+
+/* ---------- Minimal GIF encoder ---------- */
+class GIFEncoder{
+  constructor(w,h){this.w=w;this.h=h;this.frames=[];}
+  addFrame(rgba,delay){this.frames.push({rgba:new Uint8ClampedArray(rgba),delay});}
+  buildPalette(){const counts=new Map();for(const f of this.frames){const d=f.rgba;for(let i=0;i<d.length;i+=4){const k=((d[i]>>3)<<10)|((d[i+1]>>3)<<5)|(d[i+2]>>3);counts.set(k,(counts.get(k)||0)+1);}}
+    const top=[...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,256).map(e=>e[0]);
+    this.pal=top.map(k=>[((k>>10)&31)<<3,((k>>5)&31)<<3,(k&31)<<3]);while(this.pal.length<256)this.pal.push([0,0,0]);
+    this.lut=new Map();top.forEach((k,i)=>this.lut.set(k,i));}
+  nearest(r,g,b){const k=((r>>3)<<10)|((g>>3)<<5)|(b>>3);let i=this.lut.get(k);if(i!==undefined)return i;let best=0,bd=1e9;for(let j=0;j<this.pal.length;j++){const p=this.pal[j];const d=(p[0]-r)**2+(p[1]-g)**2+(p[2]-b)**2;if(d<bd){bd=d;best=j}}this.lut.set(k,best);return best;}
+  finish(){this.buildPalette();const out=[];const w=this.w,h=this.h;const put=(...b)=>out.push(...b);const put16=v=>put(v&255,v>>8);
+    put(71,73,70,56,57,97);put16(w);put16(h);put(0xF7,0,0);for(const p of this.pal)put(p[0],p[1],p[2]);
+    put(0x21,0xFF,11,...[...'NETSCAPE2.0'].map(c=>c.charCodeAt(0)),3,1,0,0,0);
+    for(const f of this.frames){const idx=new Uint8Array(w*h);const d=f.rgba;for(let i=0,j=0;i<d.length;i+=4,j++)idx[j]=this.nearest(d[i],d[i+1],d[i+2]);
+      put(0x21,0xF9,4,0);put16(f.delay);put(0,0);put(0x2C);put16(0);put16(0);put16(w);put16(h);put(0);put(8);
+      const data=this.lzw(idx,8);for(let i=0;i<data.length;i+=255){const c=data.subarray(i,i+255);put(c.length,...c);}put(0);}
+    put(0x3B);return new Uint8Array(out);}
+  lzw(idx,minCode){const clear=1<<minCode,eoi=clear+1;let codeSize=minCode+1,next=eoi+1;let dict=new Map();const out=[];let cur=0,bits=0;
+    const emit=c=>{cur|=c<<bits;bits+=codeSize;while(bits>=8){out.push(cur&255);cur>>=8;bits-=8}};
+    emit(clear);let prefix=idx[0];
+    for(let i=1;i<idx.length;i++){const k=idx[i];const key=(prefix<<8)|k;const e=dict.get(key);if(e!==undefined){prefix=e;continue}emit(prefix);
+      if(next<4096){dict.set(key,next++);if(next>(1<<codeSize)&&codeSize<12)codeSize++;}else{emit(clear);dict=new Map();codeSize=minCode+1;next=eoi+1;}prefix=k;}
+    emit(prefix);emit(eoi);if(bits>0)out.push(cur&255);return new Uint8Array(out);}
+}
+
+build();bindExport();
+
+/* ---------- Standalone HTML export ---------- */
+document.getElementById('btnHtml').onclick=async()=>{
+  let mediaTag='';
+  if(media.el&&media.kind==='image'){const b64=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(media.file)});mediaTag=`<img id="m" src="${b64}" hidden>`;}
+  else if(media.kind==='video')setStatus('Video is not embedded in the HTML player; the field will run without it');
+  const core=document.getElementById('core').textContent;
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fieldglyph animation</title>
+<style>html,body{margin:0;height:100%;background:${P.bg}}body{display:flex;align-items:center;justify-content:center}canvas{max-width:100vw;max-height:100vh;object-fit:contain}</style></head>
+<body>${mediaTag}<canvas id="cv"></canvas>
+<script>${core}<\/script>
+<script>
+Object.assign(P,${JSON.stringify(P)});
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');cv.width=P.W;cv.height=P.H;
+const img=document.getElementById('m');if(img){media.el=img;media.kind='image';}
+const t0=performance.now();
+(function tick(now){renderFrame(ctx,timeToPhase((now-t0)/1000));requestAnimationFrame(tick)})(t0);
+<\/script></body></html>`;
+  download('fieldglyph-player.html',new Blob([html],{type:'text/html'}));setStatus('HTML player saved');
+};
+</script>
+</body>
+</html>
