@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZOETROPE — card carousel animator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#101014; --panel:#16161c; --panel2:#1c1c24; --line:#26262f;
+    --ink:#e8e8ec; --dim:#8b8b98; --faint:#55555f;
+    --acc:#f3aee0; --acc2:#e6f96b;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:12px;overflow:hidden}
+
+  header{height:52px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 16px}
+  .brand{display:flex;align-items:baseline;gap:10px}
+  .brand b{font-family:'Archivo';font-weight:900;font-stretch:120%;font-size:19px;letter-spacing:.14em}
+  .brand span{color:var(--faint);font-size:10px;letter-spacing:.08em}
+  header .spacer{flex:1}
+  .btn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;background:var(--panel2);border:1px solid var(--line);
+    color:var(--ink);padding:8px 14px;border-radius:7px;cursor:pointer;transition:.15s}
+  .btn:hover{border-color:var(--dim)}
+  .btn.pri{background:var(--acc2);border-color:var(--acc2);color:#111;font-weight:700}
+  .btn.pri:hover{filter:brightness(1.06)}
+  .btn.rec{background:var(--acc);border-color:var(--acc);color:#111;font-weight:700}
+  .btn:disabled{opacity:.4;cursor:default}
+
+  main{display:grid;grid-template-columns:288px 1fr 300px;height:calc(100% - 52px)}
+  aside{overflow-y:auto;background:var(--panel);border-right:1px solid var(--line);padding:14px;scrollbar-width:thin}
+  aside#cardsPanel{border-right:0;border-left:1px solid var(--line)}
+
+  .sec{margin-bottom:22px}
+  .sec>h3{font-size:9.5px;letter-spacing:.22em;color:var(--faint);margin-bottom:10px;font-weight:500}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+  .row label{color:var(--dim);font-size:11px;white-space:nowrap}
+  .row .val{color:var(--ink);font-size:10.5px;min-width:44px;text-align:right}
+  input[type=range]{flex:1;accent-color:var(--acc2);height:2px;cursor:pointer}
+  select,input[type=text],input[type=number]{font-family:var(--mono);font-size:11px;background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:6px;padding:6px 8px;outline:none;max-width:150px}
+  select:focus,input[type=text]:focus,input[type=number]:focus{border-color:var(--dim)}
+  input.numin{width:66px;max-width:66px;font-family:var(--mono);font-size:10.5px;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 6px;outline:none}
+  input.numin:focus{border-color:var(--dim)}
+  input[type=color]{width:30px;height:24px;border:1px solid var(--line);border-radius:6px;background:none;padding:1px;cursor:pointer}
+  .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .seg button{flex:1;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;background:none;border:0;color:var(--dim);padding:7px 0;cursor:pointer}
+  .seg button.on{background:var(--ink);color:#111;font-weight:700}
+  .switch{display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--dim);font-size:11px}
+  .switch input{accent-color:var(--acc2)}
+
+  /* stage */
+  #stage{display:flex;align-items:center;justify-content:center;padding:26px;position:relative;min-width:0;background:
+    radial-gradient(ellipse at 50% 40%, #17171d 0%, var(--bg) 70%)}
+  #canvasWrap{position:relative;max-width:100%;max-height:100%;box-shadow:0 30px 80px rgba(0,0,0,.55);border-radius:10px;overflow:hidden;border:1px solid #000}
+  #canvasWrap canvas{display:block;max-width:100%;max-height:calc(100vh - 110px);width:auto;height:auto}
+  #recBadge{position:absolute;top:14px;left:14px;background:rgba(0,0,0,.72);border:1px solid var(--acc);color:var(--acc);
+    padding:7px 12px;border-radius:7px;font-size:10.5px;letter-spacing:.1em;display:none;align-items:center;gap:8px}
+  #recBadge i{width:8px;height:8px;border-radius:50%;background:var(--acc);animation:bl 1s infinite}
+  @keyframes bl{50%{opacity:.2}}
+  #hint{position:absolute;bottom:10px;left:0;right:0;text-align:center;color:var(--faint);font-size:9.5px;letter-spacing:.08em}
+
+  /* cards panel */
+  .card-item{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:10px}
+  .card-item .head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .card-item .idx{font-size:10px;color:var(--faint);letter-spacing:.1em}
+  .card-item select.type{flex:1;max-width:none}
+  .icon-btn{background:none;border:1px solid var(--line);border-radius:5px;color:var(--dim);width:22px;height:22px;cursor:pointer;font-size:11px;line-height:1}
+  .icon-btn:hover{color:var(--ink);border-color:var(--dim)}
+  .card-item textarea{width:100%;font-family:var(--mono);font-size:11px;background:var(--panel);border:1px solid var(--line);
+    border-radius:6px;color:var(--ink);padding:6px 8px;resize:vertical;min-height:34px;outline:none}
+  .card-item .mini{display:flex;gap:8px;align-items:center;margin-top:7px}
+  .card-item .mini label{color:var(--faint);font-size:10px}
+  .filebtn{display:inline-block;font-size:10.5px;border:1px dashed var(--line);border-radius:6px;color:var(--dim);
+    padding:6px 9px;cursor:pointer;margin-top:7px}
+  .filebtn:hover{color:var(--ink);border-color:var(--dim)}
+  .fname{font-size:9.5px;color:var(--acc2);margin-top:5px;word-break:break-all}
+  .urlrow{display:flex;gap:6px;margin-top:7px}
+  .urlrow input{flex:1;max-width:none}
+  #addCard{width:100%;border-style:dashed}
+
+  @media (max-width:960px){
+    body{overflow:auto}
+    main{grid-template-columns:1fr;height:auto}
+    aside{border:0;border-bottom:1px solid var(--line)}
+    #stage{order:-1;min-height:60vh}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><b>ZOETROPE</b><span>3D CARD CAROUSEL ANIMATOR · EXPERIGN</span></div>
+  <div class="spacer"></div>
+  <button class="btn" id="btnHtml">Export HTML</button>
+  <button class="btn rec" id="btnRec">● Record loop (WebM)</button>
+</header>
+
+<main>
+  <aside id="controlsPanel">
+    <div class="sec">
+      <h3>GEOMETRY</h3>
+      <div class="row"><label>Axis</label>
+        <div class="seg" id="axisSeg" style="width:130px">
+          <button data-v="y" class="on">HORIZ</button><button data-v="x">VERT</button>
+        </div>
+      </div>
+      <div class="row"><label>Card width</label><input type="range" id="cardW" min="240" max="1200" step="10" value="620"><input type="number" class="numin" id="cardWn" min="100" max="4000" value="620"></div>
+      <div class="row"><label>Card height</label><input type="range" id="cardH" min="240" max="1400" step="10" value="780"><input type="number" class="numin" id="cardHn" min="100" max="4000" value="780"></div>
+      <div class="row"><label>Spacing</label><input type="range" id="gap" min="0" max="600" step="5" value="150"><span class="val" id="gapv"></span></div>
+      <div class="row"><label>Corner radius</label><input type="range" id="rad" min="0" max="120" step="2" value="34"><span class="val" id="radv"></span></div>
+    </div>
+
+    <div class="sec">
+      <h3>CAMERA</h3>
+      <div class="row"><label>Focal length</label><input type="range" id="focal" min="16" max="200" step="1" value="50"><span class="val" id="focalv"></span></div>
+      <div class="row"><label>Perspective</label><input type="range" id="persp" min="0.35" max="3" step="0.05" value="1"><span class="val" id="perspv"></span></div>
+      <div class="row"><label>Zoom</label><input type="range" id="zoom" min="0.5" max="2.5" step="0.05" value="1"><span class="val" id="zoomv"></span></div>
+      <div class="row"><button class="btn" id="resetCam" style="width:100%">↺ Reset camera</button></div>
+    </div>
+
+    <div class="sec">
+      <h3>3D VIEW</h3>
+      <div class="row"><label>Tilt (X)</label><input type="range" id="tiltX" min="-80" max="80" step="1" value="0"><span class="val" id="tiltXv"></span></div>
+      <div class="row"><label>Yaw (Y)</label><input type="range" id="yawY" min="-80" max="80" step="1" value="0"><span class="val" id="yawYv"></span></div>
+      <div class="row"><label>Roll (Z)</label><input type="range" id="rollZ" min="-180" max="180" step="1" value="0"><span class="val" id="rollZv"></span></div>
+      <div class="row"><button class="btn" id="resetView" style="width:100%">↺ Reset view</button></div>
+    </div>
+
+    <div class="sec">
+      <h3>MOTION</h3>
+      <div class="row"><label>Mode</label>
+        <div class="seg" id="modeSeg" style="width:150px">
+          <button data-v="continuous" class="on">SPIN</button><button data-v="stepped">STEP</button>
+        </div>
+      </div>
+      <div class="row" id="rowRev"><label>Sec / rev</label><input type="range" id="revSec" min="2" max="40" step="0.5" value="14"><span class="val" id="revSecv"></span></div>
+      <div class="row" id="rowStep" style="display:none"><label>Sec / step</label><input type="range" id="stepSec" min="0.4" max="5" step="0.1" value="1.6"><span class="val" id="stepSecv"></span></div>
+      <div class="row" id="rowEase" style="display:none"><label>Curve</label>
+        <select id="easing">
+          <option value="cubic">Smooth (cubic)</option>
+          <option value="quint">Snappy (quint)</option>
+          <option value="back">Overshoot</option>
+          <option value="elastic">Elastic</option>
+          <option value="expo">Expo out</option>
+          <option value="linear">Linear</option>
+        </select>
+      </div>
+      <div class="row" id="rowHold" style="display:none"><label>Hold</label><input type="range" id="hold" min="0" max="80" step="1" value="35"><span class="val" id="holdv"></span></div>
+      <div class="row"><label>Direction</label>
+        <div class="seg" id="dirSeg" style="width:110px">
+          <button data-v="1" class="on">→</button><button data-v="-1">←</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>LOOK</h3>
+      <div class="row"><label>Background</label><input type="color" id="bg" value="#3a3a42"></div>
+      <div class="row"><label class="switch"><input type="checkbox" id="fadeOn" checked> Edge fade</label></div>
+      <div class="row" id="rowFade"><label>Fade width</label><input type="range" id="fadeW" min="5" max="45" step="1" value="24"><span class="val" id="fadeWv"></span></div>
+      <div class="row"><label class="switch"><input type="checkbox" id="frameOn" checked> Social frame</label></div>
+      <div class="row" id="rowHandle"><label>Handle</label><input type="text" id="handle" value="mews" maxlength="24"></div>
+      <div class="row" id="rowAv"><label>Avatar color</label><input type="color" id="avColor" value="#f3aee0"></div>
+    </div>
+
+    <div class="sec">
+      <h3>WIGGLE</h3>
+      <div class="row"><label>Mode</label>
+        <div class="seg" id="wiggleSeg" style="width:180px">
+          <button data-v="off" class="on">OFF</button><button data-v="constant">CONST</button><button data-v="hover">HOVER</button>
+        </div>
+      </div>
+      <div class="row" id="rowWigStyle"><label>Style</label>
+        <select id="wiggleAxis">
+          <option value="tiltXY" selected>Tilt (3D wobble)</option>
+          <option value="rockZ">Rock (in-plane)</option>
+          <option value="bobY">Bob (vertical)</option>
+          <option value="swayX">Sway (horizontal)</option>
+          <option value="pulse">Pulse (scale)</option>
+        </select>
+      </div>
+      <div class="row" id="rowWigAmp"><label>Amount</label><input type="range" id="wiggleAmp" min="0" max="1.6" step="0.02" value="0.5"><span class="val" id="wiggleAmpv"></span></div>
+      <div class="row" id="rowWigFreq"><label>Speed</label><input type="range" id="wiggleFreq" min="0.1" max="4" step="0.1" value="1"><span class="val" id="wiggleFreqv"></span></div>
+    </div>
+
+    <div class="sec">
+      <h3>VFX</h3>
+      <div class="row"><label>Baseline</label><input type="range" id="vfxFloor" min="0" max="1" step="0.02" value="0"><span class="val" id="vfxFloorv"></span></div>
+      <div class="row"><label>Velocity gain</label><input type="range" id="vfxGain" min="0" max="2.5" step="0.05" value="1"><span class="val" id="vfxGainv"></span></div>
+      <div class="row" style="margin-top:12px"><label style="color:var(--acc2)">RIPPLE</label></div>
+      <div class="row"><label>Amount</label><input type="range" id="vfxLiquid" min="0" max="1.6" step="0.02" value="0"><span class="val" id="vfxLiquidv"></span></div>
+      <div class="row"><label>Frequency</label><input type="range" id="ripFreq" min="0.3" max="3" step="0.05" value="1"><span class="val" id="ripFreqv"></span></div>
+      <div class="row"><label>Speed</label><input type="range" id="ripSpeed" min="0.3" max="7" step="0.1" value="2.4"><span class="val" id="ripSpeedv"></span></div>
+      <div class="row" style="margin-top:12px"><label style="color:var(--acc2)">MOTION BEND</label></div>
+      <div class="row"><label>Amount</label><input type="range" id="vfxDisp" min="0" max="1.6" step="0.02" value="0"><span class="val" id="vfxDispv"></span></div>
+      <div class="row"><label>Curl</label><input type="range" id="bendCurl" min="0" max="2.5" step="0.05" value="1"><span class="val" id="bendCurlv"></span></div>
+      <div class="row" style="margin-top:12px"><label style="color:var(--acc2)">TWIST · JELLY</label></div>
+      <div class="row"><label>Twist</label><input type="range" id="vfxTwist" min="0" max="1.6" step="0.02" value="0"><span class="val" id="vfxTwistv"></span></div>
+      <div class="row"><label>Jelly</label><input type="range" id="vfxJelly" min="0" max="1.6" step="0.02" value="0"><span class="val" id="vfxJellyv"></span></div>
+      <div class="row" style="margin-top:12px"><label style="color:var(--acc2)">GLITCH SLICE</label></div>
+      <div class="row"><label>Amount</label><input type="range" id="vfxGlitch" min="0" max="1.6" step="0.02" value="0"><span class="val" id="vfxGlitchv"></span></div>
+      <div class="row"><label>Bands</label><input type="range" id="gliBands" min="3" max="30" step="1" value="10"><span class="val" id="gliBandsv"></span></div>
+      <div class="row"><label>Rate</label><input type="range" id="gliRate" min="3" max="40" step="1" value="16"><span class="val" id="gliRatev"></span></div>
+      <div class="row" style="margin-top:12px"><label>Presets</label>
+        <div class="seg" id="vfxPreset" style="width:200px">
+          <button data-v="clean">CLEAN</button><button data-v="liquid">LIQUID</button><button data-v="cyber">CYBER</button><button data-v="jelly">JELLY</button><button data-v="max">MAX</button>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>OUTPUT</h3>
+      <div class="row"><label>Resolution</label>
+        <select id="resSel">
+          <option value="1920x1080" selected>1920 × 1080</option>
+          <option value="1080x1080">1080 × 1080</option>
+          <option value="1080x1350">1080 × 1350</option>
+          <option value="1080x1920">1080 × 1920</option>
+          <option value="1280x720">1280 × 720</option>
+          <option value="custom">Custom…</option>
+        </select>
+      </div>
+      <div class="row" id="rowResCustom" style="display:none"><label>W × H</label>
+        <input type="number" class="numin" id="resWn" min="240" max="4096" value="1920">
+        <input type="number" class="numin" id="resHn" min="240" max="4096" value="1080">
+      </div>
+      <div class="row"><label>Loop length</label><span class="val" id="loopLen"></span></div>
+    </div>
+  </aside>
+
+  <section id="stage">
+    <div id="canvasWrap"></div>
+    <div id="recBadge"><i></i><span id="recTxt">RECORDING</span></div>
+    <div id="hint">preview and exports render from the same engine — what you see is what you ship</div>
+  </section>
+
+  <aside id="cardsPanel">
+    <div class="sec">
+      <h3>CARDS</h3>
+      <div id="cardList"></div>
+      <button class="btn" id="addCard">+ Add card</button>
+    </div>
+  </aside>
+</main>
+
+<div id="errBox" style="display:none;position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;
+  background:#2a1013;border:1px solid #ff4b3e;color:#ffb4ae;border-radius:10px;padding:12px 40px 12px 14px;
+  font:11px/1.5 'JetBrains Mono',monospace;white-space:pre-wrap;max-height:180px;overflow:auto"></div>
+<script>
+(function(){
+  var box=null;
+  window.__reportErr=function(msg){
+    box=box||document.getElementById('errBox');
+    if(!box)return;
+    box.style.display='block';
+    box.textContent+=(box.textContent?'\n\n':'')+msg;
+  };
+  window.addEventListener('error',function(e){
+    window.__reportErr('ERROR: '+(e.message||e.type)+(e.filename?'\n'+e.filename.split('/').pop()+':'+e.lineno:''));
+  });
+  window.addEventListener('unhandledrejection',function(e){
+    window.__reportErr('PROMISE ERROR: '+(e.reason&&e.reason.message||e.reason));
+  });
+  // three.js CDN failure is the most common "nothing renders" cause
+  window.addEventListener('load',function(){
+    if(typeof THREE==='undefined') window.__reportErr('three.js failed to load from CDN — check network access to cdnjs.cloudflare.com');
+  });
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================================================
+   ENGINE — fully self-contained. Serialized verbatim into the
+   HTML export, so preview and export share one source of truth.
+   ============================================================ */
+function engineMain(CONFIG, mount, opts){
+  opts = opts || {};
+  var PX = 1/300; // px -> world
+  var renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
+  renderer.setPixelRatio(1);
+  mount.appendChild(renderer.domElement);
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(45, 16/9, 0.01, 100);
+  var rig = new THREE.Group();
+  var group = new THREE.Group();
+  rig.add(group);
+  scene.add(rig);
+  function applyRig(){
+    rig.rotation.set(
+      (CONFIG.tiltX||0)*Math.PI/180,
+      (CONFIG.yawY||0)*Math.PI/180,
+      (CONFIG.rollZ||0)*Math.PI/180
+    );
+  }
+
+  // overlay (edge fade) — orthographic pass, baked into every frame
+  var ovScene = new THREE.Scene();
+  var ovCam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  var fadeMatA, fadeMatB, fadeMeshA, fadeMeshB;
+  (function(){
+    var vs = 'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4((modelMatrix*vec4(position,1.0)).xy,0.0,1.0);}';
+    var fs = 'varying vec2 vUv;uniform vec3 uC;uniform float uFlip;void main(){float a=uFlip>0.5?vUv.x:1.0-vUv.x;gl_FragColor=vec4(uC,a);}';
+    function mk(flip){return new THREE.ShaderMaterial({vertexShader:vs,fragmentShader:fs,transparent:true,depthTest:false,
+      uniforms:{uC:{value:new THREE.Color(CONFIG.bg)},uFlip:{value:flip}}});}
+    fadeMatA = mk(0); fadeMatB = mk(1);
+    fadeMeshA = new THREE.Mesh(new THREE.PlaneGeometry(2,2), fadeMatA);
+    fadeMeshB = new THREE.Mesh(new THREE.PlaneGeometry(2,2), fadeMatB);
+    ovScene.add(fadeMeshA); ovScene.add(fadeMeshB);
+  })();
+
+  // Plain passthrough vertex shader — guaranteed baseline fallback.
+  var cardVS_PLAIN = 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}';
+
+  // CARD-LEVEL VFX live in the VERTEX shader: the card plane itself ripples,
+  // bends, and slices as an object while the artwork on it stays intact.
+  // All effects scale with uMotion (normalized rotation speed) so they act as
+  // velocity-driven transitions: still card = clean, spinning card = distorted.
+  var cardVS_FX = [
+    'varying vec2 vUv;',
+    'uniform vec2 uSize;',
+    'uniform float uTime;uniform float uMotion;uniform float uVel;uniform float uSeed;',
+    'uniform float uLiquid;uniform float uDisp;uniform float uGlitch;uniform float uTwist;uniform float uJelly;',
+    'uniform float uRipFreq;uniform float uRipSpeed;uniform float uBendCurl;',
+    'uniform float uGliBands;uniform float uGliRate;uniform float uFloor;uniform float uGain;',
+    'float hash(float n){return fract(sin(n)*43758.5453);}',
+    'void main(){',
+    ' vUv=uv;',
+    ' vec3 p=position;',
+    ' vec2 np=p.xy/max(uSize.x,0.0001);',
+    ' float amt=clamp(uFloor+uMotion*uGain,0.0,1.5);',
+    // cloth ripple — freq + speed granular
+    ' if(uLiquid>0.001&&amt>0.001){',
+    '   float t=uTime*uRipSpeed+uSeed;',
+    '   float rip=sin(np.x*9.0*uRipFreq+t)+sin(np.y*6.5*uRipFreq-t*1.35)*0.8;',
+    '   p.z+=rip*uLiquid*amt*uSize.x*0.055;',
+    '   p.x+=sin(np.y*4.5*uRipFreq+t*0.7)*uLiquid*amt*uSize.x*0.02;',
+    ' }',
+    // motion bend — curl amount granular, direction-aware via signed velocity
+    ' if(uDisp>0.001&&amt>0.001){',
+    '   float v=uVel;',
+    '   p.z+=-v*np.x*abs(np.x)*uDisp*uSize.x*0.55*uBendCurl;',
+    '   p.x*=1.0+uDisp*amt*0.18;',
+    '   p.z+=-v*np.y*np.y*uDisp*uSize.x*0.12*uBendCurl;',
+    ' }',
+    // twist — card corkscrews around its vertical axis with velocity
+    ' if(uTwist>0.001&&amt>0.001){',
+    '   float a=uVel*uTwist*np.y*1.4;',
+    '   float cs=cos(a);float sn=sin(a);',
+    '   p=vec3(p.x*cs-p.z*sn,p.y,p.x*sn+p.z*cs);',
+    ' }',
+    // jelly — springy squash/stretch wobble + velocity drag on the free end
+    ' if(uJelly>0.001&&amt>0.001){',
+    '   float w=sin(uTime*9.0+uSeed*2.0)*uJelly*amt;',
+    '   p.x*=1.0+w*0.10;',
+    '   p.y*=1.0-w*0.07;',
+    '   p.x+=uVel*np.y*np.y*uJelly*uSize.x*0.35;',
+    ' }',
+    // glitch slice — band count + trigger rate granular
+    ' if(uGlitch>0.001&&amt>0.001){',
+    '   float band=floor(np.y*uGliBands);',
+    '   float g=hash(band+uSeed*13.7+floor(uTime*uGliRate));',
+    '   float act=step(0.74,g);',
+    '   p.x+=(hash(band*7.7+uSeed+floor(uTime*uGliRate*1.5))-0.5)*act*uGlitch*amt*uSize.x*0.22;',
+    '   float jf=floor(uTime*uGliRate*1.7)+uSeed*3.1;',
+    '   float j=step(0.965,hash(jf));',
+    '   p.xy+=(vec2(hash(jf*3.3),hash(jf*5.1))-0.5)*j*uGlitch*amt*uSize.x*0.05;',
+    ' }',
+    ' gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}'
+  ].join('\n');
+
+  // Fragment stays clean — content is never warped, only masked to the
+  // rounded-rect card shape.
+  var cardFS_PLAIN =
+    'varying vec2 vUv;uniform sampler2D map;uniform float uHasMap;uniform vec3 uColor;'+
+    'uniform vec2 uSize;uniform float uRad;uniform mat3 uUvT;'+
+    'void main(){'+
+    ' vec2 p=(vUv-0.5)*uSize; vec2 b=uSize*0.5-vec2(uRad);'+
+    ' float d=length(max(abs(p)-b,0.0))-uRad;'+
+    ' if(d>0.0) discard;'+
+    ' vec2 tuv=(uUvT*vec3(vUv,1.0)).xy;'+
+    ' vec4 c=uHasMap>0.5?texture2D(map,tuv):vec4(uColor,1.0);'+
+    ' if(c.a<0.02) discard;'+
+    ' gl_FragColor=c;}';
+
+  // Test-compile the FX vertex shader on THIS GPU in the same dialect
+  // three.js will use; fall back to the plain passthrough on rejection.
+  var cardVS_ACTIVE = cardVS_PLAIN;
+  (function(){
+    try{
+      var gl=renderer.getContext();
+      var isGL2=(typeof WebGL2RenderingContext!=='undefined') && (gl instanceof WebGL2RenderingContext);
+      var prologue = isGL2
+        ? '#version 300 es\n#define varying out\n#define attribute in\nprecision highp float;precision highp int;\n'
+          +'attribute vec3 position;attribute vec2 uv;uniform mat4 projectionMatrix;uniform mat4 modelViewMatrix;\n'
+        : 'precision highp float;precision highp int;\n'
+          +'attribute vec3 position;attribute vec2 uv;uniform mat4 projectionMatrix;uniform mat4 modelViewMatrix;\n';
+      var sh=gl.createShader(gl.VERTEX_SHADER);
+      gl.shaderSource(sh,prologue+cardVS_FX);
+      gl.compileShader(sh);
+      var ok=gl.getShaderParameter(sh,gl.COMPILE_STATUS);
+      var log=ok?'':(gl.getShaderInfoLog(sh)||'unknown compile error');
+      gl.deleteShader(sh);
+      if(ok){ cardVS_ACTIVE=cardVS_FX; }
+      else if(typeof window!=='undefined'&&window.__reportErr){
+        window.__reportErr('VFX vertex shader rejected by GPU — running clean shader.\n'+log);
+      }
+    }catch(e){ /* no GL context — stay on plain */ }
+  })();
+
+  function cardMat(tex, colorHex, w, h, rad){
+    return new THREE.ShaderMaterial({
+      vertexShader:cardVS_ACTIVE, fragmentShader:cardFS_PLAIN, side:THREE.DoubleSide, transparent:false,
+      uniforms:{
+        map:{value:tex||new THREE.Texture()}, uHasMap:{value:tex?1:0},
+        uColor:{value:new THREE.Color(colorHex||'#ffffff')},
+        uSize:{value:new THREE.Vector2(w,h)}, uRad:{value:rad},
+        uUvT:{value:new THREE.Matrix3()},
+        uTime:{value:0}, uMotion:{value:0}, uVel:{value:0}, uSeed:{value:0},
+        uLiquid:{value:0}, uDisp:{value:0}, uGlitch:{value:0}, uTwist:{value:0}, uJelly:{value:0},
+        uRipFreq:{value:1}, uRipSpeed:{value:2.4}, uBendCurl:{value:1},
+        uGliBands:{value:10}, uGliRate:{value:16}, uFloor:{value:0}, uGain:{value:1}
+      }});
+  }
+
+  // cover-crop a texture into a target aspect via UV matrix
+  function coverUv(mat, srcW, srcH, dstW, dstH){
+    var sa = srcW/srcH, da = dstW/dstH, sx=1, sy=1;
+    if(sa > da){ sx = da/sa; } else { sy = sa/da; }
+    mat.uniforms.uUvT.value.set(sx,0,(1-sx)/2, 0,sy,(1-sy)/2, 0,0,1);
+  }
+
+  // ---------- texture builders ----------
+  function textTexture(card, w, h){
+    var S = 2, cw = Math.round(w*S), ch = Math.round(h*S);
+    var cv = document.createElement('canvas'); cv.width=cw; cv.height=ch;
+    var x = cv.getContext('2d');
+    x.fillStyle = card.color||'#f3aee0'; x.fillRect(0,0,cw,ch);
+    var lines = String(card.text||'').split('\n').filter(function(l){return l.length});
+    if(lines.length){
+      x.fillStyle = card.textColor||'#111111';
+      x.textAlign='center'; x.textBaseline='middle';
+      try{ x.letterSpacing = '0.06em'; }catch(e){}
+      var fs = cw*0.16, pad = cw*0.1;
+      function font(s){ return '900 '+s+'px Archivo, "Archivo Black", "Arial Black", Arial, sans-serif'; }
+      var fit=false;
+      while(!fit && fs>10){
+        x.font=font(fs); fit=true;
+        for(var i=0;i<lines.length;i++){ if(x.measureText(lines[i].toUpperCase()).width > cw-pad*2){fit=false;fs*=0.94;break;} }
+        if(lines.length*fs*1.18 > ch-pad*2){ fit=false; fs*=0.94; }
+      }
+      x.font=font(fs);
+      var lh = fs*1.18, y0 = ch/2 - lh*(lines.length-1)/2;
+      for(var j=0;j<lines.length;j++) x.fillText(lines[j].toUpperCase(), cw/2, y0+j*lh);
+    }
+    var t = new THREE.CanvasTexture(cv); t.anisotropy=4; return t;
+  }
+
+  function frameTexture(w, h, rad, handle, avColor){
+    var S=2, cw=Math.round(w*S), ch=Math.round(h*S), r=rad*S;
+    var cv=document.createElement('canvas'); cv.width=cw; cv.height=ch;
+    var x=cv.getContext('2d');
+    var bar = Math.round(ch*CONFIG.frameBar);
+    function rr(x0,y0,ww,hh,r){ x.beginPath();
+      x.moveTo(x0+r,y0); x.arcTo(x0+ww,y0,x0+ww,y0+hh,r); x.arcTo(x0+ww,y0+hh,x0,y0+hh,r);
+      x.arcTo(x0,y0+hh,x0,y0,r); x.arcTo(x0,y0,x0+ww,y0,r); x.closePath(); }
+    // full rounded card clip, bars only
+    x.save(); rr(0,0,cw,ch,r); x.clip();
+    x.fillStyle='#0a0a0a';
+    x.fillRect(0,0,cw,bar); x.fillRect(0,ch-bar,cw,bar);
+    // top: avatar + handle
+    var ay=bar/2, ar=bar*0.30;
+    x.fillStyle=avColor||'#f3aee0'; x.beginPath(); x.arc(bar*0.62,ay,ar,0,7); x.fill();
+    x.strokeStyle='#0a0a0a'; x.lineWidth=Math.max(2,ar*0.16);
+    x.beginPath(); x.moveTo(bar*0.62-ar*0.45,ay-ar*0.35); x.lineTo(bar*0.62-ar*0.45,ay+ar*0.35);
+    x.moveTo(bar*0.62,ay-ar*0.5); x.lineTo(bar*0.62,ay+ar*0.5);
+    x.moveTo(bar*0.62+ar*0.45,ay-ar*0.35); x.lineTo(bar*0.62+ar*0.45,ay+ar*0.35); x.stroke();
+    x.fillStyle='#fff'; x.textBaseline='middle'; x.textAlign='left';
+    x.font='600 '+(bar*0.34)+'px "JetBrains Mono", Arial, sans-serif';
+    x.fillText(handle||'', bar*0.62+ar+bar*0.28, ay);
+    // top dots
+    x.fillStyle='#fff';
+    for(var i=0;i<3;i++){ x.beginPath(); x.arc(cw-bar*0.5-i*bar*0.22, ay, bar*0.045,0,7); x.fill(); }
+    // bottom icons
+    var by=ch-bar/2, s=bar*0.30; x.strokeStyle='#fff'; x.lineWidth=Math.max(2,bar*0.055);
+    x.lineJoin='round'; x.lineCap='round';
+    // heart
+    var hx=bar*0.55;
+    x.beginPath();
+    x.moveTo(hx,by+s*0.55);
+    x.bezierCurveTo(hx-s*1.1,by-s*0.35,hx-s*0.45,by-s*1.05,hx,by-s*0.35);
+    x.bezierCurveTo(hx+s*0.45,by-s*1.05,hx+s*1.1,by-s*0.35,hx,by+s*0.55);
+    x.stroke();
+    // comment bubble
+    var cx0=hx+bar*0.85;
+    x.beginPath(); x.arc(cx0,by-s*0.05,s*0.55,Math.PI*0.32,Math.PI*2.05);
+    x.lineTo(cx0-s*0.62,by+s*0.62); x.closePath(); x.stroke();
+    // send
+    var sx0=cx0+bar*0.85;
+    x.beginPath(); x.moveTo(sx0-s*0.55,by+s*0.35); x.lineTo(sx0+s*0.6,by-s*0.5);
+    x.lineTo(sx0-s*0.05,by+s*0.6); x.lineTo(sx0-s*0.15,by+s*0.1); x.closePath(); x.stroke();
+    // bookmark
+    var bx0=cw-bar*0.55;
+    x.beginPath(); x.moveTo(bx0-s*0.42,by-s*0.55); x.lineTo(bx0+s*0.42,by-s*0.55);
+    x.lineTo(bx0+s*0.42,by+s*0.6); x.lineTo(bx0,by+s*0.18); x.lineTo(bx0-s*0.42,by+s*0.6); x.closePath(); x.stroke();
+    x.restore();
+    var t=new THREE.CanvasTexture(cv); t.anisotropy=4; return t;
+  }
+
+  var liveUpdaters = []; // per-frame texture updates (video/gif)
+  var disposables = [];
+
+  function mediaTexture(card, mat, dstW, dstH, done){
+    var src = card.src;
+    if(!src){ mat.uniforms.uHasMap.value=0; mat.uniforms.uColor.value.set('#2a2a30'); done&&done(); return; }
+    if(card.type==='video'){
+      var v=document.createElement('video');
+      v.src=src; v.muted=true; v.loop=true; v.playsInline=true; v.crossOrigin='anonymous';
+      v.addEventListener('loadedmetadata',function(){
+        var t=new THREE.VideoTexture(v); t.minFilter=THREE.LinearFilter;
+        mat.uniforms.map.value=t; mat.uniforms.uHasMap.value=1;
+        coverUv(mat, v.videoWidth, v.videoHeight, dstW, dstH);
+        v.play().catch(function(){});
+        disposables.push(function(){ v.pause(); v.src=''; });
+        done&&done();
+      });
+      v.load();
+    } else if(card.type==='gif' && typeof ImageDecoder!=='undefined'){
+      fetch(src).then(function(r){return r.arrayBuffer();}).then(function(buf){
+        var dec=new ImageDecoder({data:buf,type:'image/gif'});
+        return dec.tracks.ready.then(function(){
+          var track=dec.tracks.selectedTrack, n=track.frameCount, frames=[], durs=[], idx=0;
+          function grab(i){
+            return dec.decode({frameIndex:i}).then(function(res){
+              frames.push(res.image); durs.push((res.image.duration||100000)/1e6);
+              if(i+1<n) return grab(i+1);
+            });
+          }
+          return grab(0).then(function(){
+            var cv=document.createElement('canvas');
+            cv.width=frames[0].displayWidth; cv.height=frames[0].displayHeight;
+            var x=cv.getContext('2d');
+            var t=new THREE.CanvasTexture(cv); t.minFilter=THREE.LinearFilter;
+            mat.uniforms.map.value=t; mat.uniforms.uHasMap.value=1;
+            coverUv(mat, cv.width, cv.height, dstW, dstH);
+            var acc=0;
+            liveUpdaters.push(function(dt){
+              acc+=dt;
+              while(acc>durs[idx]){ acc-=durs[idx]; idx=(idx+1)%n; x.drawImage(frames[idx],0,0); t.needsUpdate=true; }
+            });
+            x.drawImage(frames[0],0,0); t.needsUpdate=true;
+            done&&done();
+          });
+        });
+      }).catch(function(){ loadImg(); });
+    } else { loadImg(); }
+    function loadImg(){
+      var img=new Image(); img.crossOrigin='anonymous';
+      img.onload=function(){
+        var t=new THREE.Texture(img); t.needsUpdate=true; t.minFilter=THREE.LinearFilter; t.anisotropy=4;
+        mat.uniforms.map.value=t; mat.uniforms.uHasMap.value=1;
+        coverUv(mat, img.naturalWidth, img.naturalHeight, dstW, dstH);
+        done&&done();
+      };
+      img.onerror=function(){ mat.uniforms.uHasMap.value=0; mat.uniforms.uColor.value.set('#2a2a30'); done&&done(); };
+      img.src=src;
+    }
+  }
+
+  // ---------- build ----------
+  var ringRadius = 1;
+  function clearGroup(){
+    while(group.children.length){
+      var m=group.children.pop();
+      if(m.geometry) m.geometry.dispose();
+      if(m.material){ if(m.material.uniforms&&m.material.uniforms.map.value) m.material.uniforms.map.value.dispose&&m.material.uniforms.map.value.dispose(); m.material.dispose(); }
+    }
+    disposables.forEach(function(f){f();}); disposables=[]; liveUpdaters=[];
+  }
+
+  var vfxMats = [];
+  function build(){
+    clearGroup();
+    vfxMats = [];
+    var cards=CONFIG.cards, N=Math.max(cards.length,1);
+    var w=CONFIG.cardW*PX, h=CONFIG.cardH*PX, gap=CONFIG.gap*PX, rad=CONFIG.rad*PX;
+    var slot = w+gap;
+    ringRadius = Math.max((N*slot)/(2*Math.PI), w*0.9);
+    if(CONFIG.axis==='x') ringRadius = Math.max((N*(h+gap))/(2*Math.PI), h*0.9);
+
+    var frameOn = CONFIG.frameOn;
+    var barFrac = CONFIG.frameBar;
+    var frameTex = frameOn ? frameTexture(CONFIG.cardW, CONFIG.cardH, CONFIG.rad, CONFIG.handle, CONFIG.avColor) : null;
+
+    cards.forEach(function(card,i){
+      var a = (i/N)*Math.PI*2;
+      var holder=new THREE.Group();
+      var pivot=new THREE.Group();      // wiggle acts here, leaving ring math clean
+      holder.add(pivot);
+      var mediaH = frameOn ? h*(1-2*barFrac) : h;
+      var mediaRad = frameOn ? 0 : rad;
+      var geo=new THREE.PlaneGeometry(w, mediaH, 24, 36);
+      var mat;
+      if(card.type==='text'){
+        var tt=textTexture(card, CONFIG.cardW, frameOn?CONFIG.cardH*(1-2*barFrac):CONFIG.cardH);
+        mat=cardMat(tt,'#fff',w,mediaH,mediaRad);
+      } else {
+        mat=cardMat(null,'#2a2a30',w,mediaH,mediaRad);
+        mediaTexture(card, mat, CONFIG.cardW, frameOn?CONFIG.cardH*(1-2*barFrac):CONFIG.cardH);
+      }
+      var mesh=new THREE.Mesh(geo,mat);
+      mesh.userData.cardIndex=i;
+      mat.uniforms.uSeed.value=i*1.618;
+      vfxMats.push(mat);
+      pivot.add(mesh);
+      if(frameOn){
+        var fmat=cardMat(frameTex,'#000',w,h,rad); fmat.transparent=true;
+        fmat.uniforms.uSeed.value=i*1.618;
+        vfxMats.push(fmat);
+        var fmesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h,24,36), fmat);
+        fmesh.position.z=0.001; fmesh.userData.cardIndex=i;
+        pivot.add(fmesh);
+      }
+      if(CONFIG.axis==='y'){
+        holder.position.set(Math.sin(a)*ringRadius, 0, Math.cos(a)*ringRadius);
+        holder.rotation.y=a;
+      } else {
+        holder.position.set(0, -Math.sin(a)*ringRadius, Math.cos(a)*ringRadius);
+        holder.rotation.x=a;
+      }
+      holder.userData={i:i, pivot:pivot, phase:i*1.7};
+      group.add(holder);
+    });
+
+    ringRadius_ = ringRadius; halfSpan_ = (CONFIG.axis==='y'?h:w);
+    applyCam();
+
+    applyRig();
+    applyLook();
+    resize();
+  }
+
+  var ringRadius_=1, halfSpan_=1;
+  // Focal length ~ FOV (mm-style feel), perspective = dolly distance multiplier,
+  // zoom = overall framing scale. Separating them lets a long lens far back
+  // flatten the ring (telephoto compression) while a wide lens up close
+  // exaggerates depth — the real photographic trade-off.
+  function focalToFov(mm){
+    // 35mm-equivalent horizontal FOV, clamped to a useful range
+    var f=2*Math.atan(18/mm)*180/Math.PI;
+    return Math.max(6,Math.min(96,f));
+  }
+  function applyCam(){
+    var mm=CONFIG.focal||35;
+    camera.fov=focalToFov(mm)/(CONFIG.zoom||1);   // zoom tightens the framing
+    camera.updateProjectionMatrix();
+    var span=halfSpan_*1.9;
+    var baseD=(span/2)/Math.tan(camera.fov*Math.PI/360);
+    var D=baseD*(CONFIG.persp||1);                // perspective = dolly in/out
+    camera.position.set(0,0,ringRadius_+D);
+    camera.lookAt(0,0,0);
+    camera.near=Math.max(D*0.03,0.01);
+    camera.far=(ringRadius_*2+D)*4;
+    camera.updateProjectionMatrix();
+  }
+
+  function applyLook(){
+    renderer.setClearColor(new THREE.Color(CONFIG.bg),1);
+    fadeMatA.uniforms.uC.value.set(CONFIG.bg);
+    fadeMatB.uniforms.uC.value.set(CONFIG.bg);
+    var fw=CONFIG.fadeOn ? CONFIG.fadeW/100*2 : 0;
+    if(CONFIG.axis==='y'){
+      fadeMeshA.rotation.z=0; fadeMeshB.rotation.z=0;
+      fadeMeshA.scale.set(fw/2,1,1); fadeMeshA.position.x=-1+fw/2;
+      fadeMeshB.scale.set(fw/2,1,1); fadeMeshB.position.x= 1-fw/2;
+      fadeMeshA.position.y=0; fadeMeshB.position.y=0;
+    } else {
+      fadeMeshA.rotation.z=-Math.PI/2; fadeMeshB.rotation.z=-Math.PI/2;
+      fadeMeshA.scale.set(fw/2,1,1); fadeMeshA.position.y= 1-fw/2; fadeMeshA.position.x=0;
+      fadeMeshB.scale.set(fw/2,1,1); fadeMeshB.position.y=-1+fw/2; fadeMeshB.position.x=0;
+    }
+    fadeMeshA.visible=fadeMeshB.visible=fw>0.001;
+  }
+
+  function resize(){
+    var W,H;
+    if(opts.fill){ W=window.innerWidth; H=window.innerHeight; }
+    else { W=CONFIG.resW; H=CONFIG.resH; }
+    renderer.setSize(W,H,false);
+    camera.aspect=W/H; camera.updateProjectionMatrix();
+  }
+  if(opts.fill) window.addEventListener('resize',resize);
+
+  // ---------- animation ----------
+  var EASE={
+    linear:function(u){return u;},
+    cubic:function(u){return u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;},
+    quint:function(u){return u<.5?16*u*u*u*u*u:1-Math.pow(-2*u+2,5)/2;},
+    expo:function(u){return u===1?1:1-Math.pow(2,-10*u);},
+    back:function(u){var c=1.70158,d=c+1;return 1+d*Math.pow(u-1,3)+c*Math.pow(u-1,2);},
+    elastic:function(u){var c=(2*Math.PI)/3;return u===0?0:u===1?1:Math.pow(2,-10*u)*Math.sin((u*10-0.75)*c)+1;}
+  };
+  function angleAt(t){
+    var N=Math.max(CONFIG.cards.length,1), slot=2*Math.PI/N;
+    if(CONFIG.mode==='continuous') return (t/CONFIG.revSec)*Math.PI*2;
+    var T=CONFIG.stepSec, k=Math.floor(t/T), ph=(t%T)/T;
+    var mv=Math.max(1-CONFIG.hold/100,0.05);
+    var u=Math.min(ph/mv,1);
+    return (k+(EASE[CONFIG.easing]||EASE.cubic)(u))*slot;
+  }
+  function loopSeconds(){
+    var N=Math.max(CONFIG.cards.length,1);
+    return CONFIG.mode==='continuous'?CONFIG.revSec:N*CONFIG.stepSec;
+  }
+
+  // ---------- hover picking for wiggle-on-hover ----------
+  var raycaster=new THREE.Raycaster(), pointer=new THREE.Vector2(-2,-2), hoverIndex=-1;
+  function onPointer(e){
+    var r=renderer.domElement.getBoundingClientRect();
+    pointer.x=((e.clientX-r.left)/r.width)*2-1;
+    pointer.y=-((e.clientY-r.top)/r.height)*2+1;
+  }
+  function onLeave(){ pointer.set(-2,-2); }
+  renderer.domElement.addEventListener('pointermove',onPointer);
+  renderer.domElement.addEventListener('pointerleave',onLeave);
+  function updateHover(){
+    if(CONFIG.wiggleMode!=='hover'){ hoverIndex=-1; return; }
+    raycaster.setFromCamera(pointer,camera);
+    var hits=raycaster.intersectObjects(group.children,true);
+    hoverIndex = hits.length ? (hits[0].object.userData.cardIndex!=null?hits[0].object.userData.cardIndex:-1) : -1;
+  }
+
+  // per-card wiggle: eased hover/constant envelope drives a small sinusoidal
+  // wave in the axis you choose; leaves the ring transform untouched.
+  var wEnv=[];
+  function applyWiggle(dt){
+    var mode=CONFIG.wiggleMode||'off';
+    var amp=CONFIG.wiggleAmp||0, freq=CONFIG.wiggleFreq||1, ax=CONFIG.wiggleAxis||'tiltXY';
+    group.children.forEach(function(hd,idx){
+      var pv=hd.userData.pivot; if(!pv) return;
+      var i=hd.userData.i;
+      var want = mode==='constant' ? 1 : (mode==='hover' && i===hoverIndex ? 1 : 0);
+      var cur = wEnv[i]==null?0:wEnv[i];
+      cur += (want-cur)*Math.min(dt*8,1);   // smooth attack/release
+      wEnv[i]=cur;
+      if(cur<0.001 && mode!=='constant'){ pv.position.set(0,0,0); pv.rotation.set(0,0,0); pv.scale.set(1,1,1); return; }
+      var ph=hd.userData.phase, s=t*freq*6.283+ph, s2=t*freq*6.283*0.72+ph*1.3;
+      var A=amp*cur;
+      pv.position.set(0,0,0); pv.rotation.set(0,0,0); pv.scale.set(1,1,1);
+      if(ax==='rockZ'){ pv.rotation.z=Math.sin(s)*A*0.35; }
+      else if(ax==='tiltXY'){ pv.rotation.x=Math.sin(s)*A*0.28; pv.rotation.y=Math.cos(s2)*A*0.28; }
+      else if(ax==='bobY'){ pv.position.y=Math.sin(s)*A*0.06; }
+      else if(ax==='swayX'){ pv.position.x=Math.sin(s)*A*0.06; }
+      else if(ax==='pulse'){ var p=1+Math.sin(s)*A*0.05; pv.scale.set(p,p,1); }
+    });
+  }
+
+  var t=0,last=performance.now(),running=true,prevAng=0,motionSm=0,velSm=0;
+  function tick(now){
+    if(!running) return;
+    var dt=Math.min((now-last)/1000,0.1); last=now; t+=dt;
+    liveUpdaters.forEach(function(f){f(dt);});
+    var ang=angleAt(t)*CONFIG.dir;
+    if(CONFIG.axis==='y') group.rotation.set(0,-ang,0);
+    else group.rotation.set(-ang,0,0);
+    // normalized rotation speed (rad/s -> ~0..1), smoothed, feeds uMotion
+    var velRaw=(ang-prevAng)/Math.max(dt,1e-4); prevAng=ang;
+    var mNorm=Math.min(Math.abs(velRaw)/3.0,1.0);
+    motionSm+=(mNorm-motionSm)*Math.min(dt*6,1);
+    velSm+=(Math.max(-1,Math.min(velRaw/3.0,1))-velSm)*Math.min(dt*6,1);
+    for(var vi=0;vi<vfxMats.length;vi++){
+      var u=vfxMats[vi].uniforms;
+      u.uTime.value=t; u.uMotion.value=motionSm; u.uVel.value=velSm;
+      u.uLiquid.value=CONFIG.vfxLiquid||0;
+      u.uDisp.value=CONFIG.vfxDisp||0;
+      u.uGlitch.value=CONFIG.vfxGlitch||0;
+      u.uTwist.value=CONFIG.vfxTwist||0;
+      u.uJelly.value=CONFIG.vfxJelly||0;
+      u.uRipFreq.value=CONFIG.ripFreq||1;
+      u.uRipSpeed.value=CONFIG.ripSpeed||2.4;
+      u.uBendCurl.value=CONFIG.bendCurl||1;
+      u.uGliBands.value=CONFIG.gliBands||10;
+      u.uGliRate.value=CONFIG.gliRate||16;
+      u.uFloor.value=CONFIG.vfxFloor||0;
+      u.uGain.value=(CONFIG.vfxGain==null?1:CONFIG.vfxGain);
+    }
+    updateHover();
+    applyWiggle(dt);
+    renderer.autoClear=true;
+    renderer.render(scene,camera);
+    renderer.autoClear=false;
+    renderer.render(ovScene,ovCam);
+    renderer.autoClear=true;
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  build();
+
+  return {
+    canvas:renderer.domElement,
+    rebuild:build,
+    look:applyLook,
+    view:applyRig,
+    cam:applyCam,
+    resize:resize,
+    loopSeconds:loopSeconds,
+    resetTime:function(){ t=0; last=performance.now(); },
+    dispose:function(){ running=false; clearGroup(); renderer.dispose(); }
+  };
+}
+
+/* ============================================================
+   TOOL UI
+   ============================================================ */
+var cfg = {
+  axis:'y', cardW:620, cardH:780, gap:150, rad:34, focal:50, persp:1, zoom:1,
+  tiltX:0, yawY:0, rollZ:0,
+  wiggleMode:'off', wiggleAxis:'tiltXY', wiggleAmp:0.5, wiggleFreq:1,
+  vfxLiquid:0, vfxDisp:0, vfxGlitch:0, vfxTwist:0, vfxJelly:0,
+  ripFreq:1, ripSpeed:2.4, bendCurl:1, gliBands:10, gliRate:16, vfxFloor:0, vfxGain:1,
+  mode:'continuous', revSec:14, stepSec:1.6, easing:'cubic', hold:35, dir:1,
+  bg:'#3a3a42', fadeOn:true, fadeW:24,
+  frameOn:true, frameBar:0.085, handle:'mews', avColor:'#f3aee0',
+  resW:1920, resH:1080,
+  cards:[
+    {type:'text', text:'MEWS', color:'#f3aee0', textColor:'#111111'},
+    {type:'text', text:'35%\nINCREASE IN REVPAR', color:'#e6f96b', textColor:'#111111'},
+    {type:'text', text:'UNFOLD', color:'#c9c9cf', textColor:'#111111'},
+    {type:'text', text:'290%\nROI OVER 3 YEARS', color:'#e6f96b', textColor:'#111111'},
+    {type:'text', text:'MEWS', color:'#111111', textColor:'#f3aee0'}
+  ]
+};
+
+var engine = engineMain(cfg, document.getElementById('canvasWrap'));
+document.fonts.ready.then(function(){ engine.rebuild(); });
+
+function fmt(n,u){ return n+(u||''); }
+function bindRange(id, key, unit, kind){
+  var el=document.getElementById(id), val=document.getElementById(id+'v');
+  function show(){ if(val) val.textContent=fmt(el.value,unit); }
+  el.addEventListener('input',function(){
+    cfg[key]=parseFloat(el.value); show(); apply(kind);
+  }); show();
+}
+function bindSeg(id, key, kind, parse){
+  var seg=document.getElementById(id);
+  seg.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click',function(){
+      seg.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on');
+      cfg[key]=parse?parse(b.dataset.v):b.dataset.v;
+      apply(kind);
+    });
+  });
+}
+function apply(kind){
+  if(kind==='rebuild') engine.rebuild();
+  else if(kind==='look') engine.look();
+  else if(kind==='view') engine.view();
+  else if(kind==='cam') engine.cam();
+  updateMotionRows(); updateLoopLen();
+}
+function updateMotionRows(){
+  var st=cfg.mode==='stepped';
+  document.getElementById('rowRev').style.display=st?'none':'flex';
+  ['rowStep','rowEase','rowHold'].forEach(function(id){document.getElementById(id).style.display=st?'flex':'none';});
+  document.getElementById('rowFade').style.display=cfg.fadeOn?'flex':'none';
+  document.getElementById('rowHandle').style.display=cfg.frameOn?'flex':'none';
+  document.getElementById('rowAv').style.display=cfg.frameOn?'flex':'none';
+  var wOn=cfg.wiggleMode!=='off';
+  ['rowWigStyle','rowWigAmp','rowWigFreq'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.style.display=wOn?'flex':'none';
+  });
+}
+function updateLoopLen(){
+  document.getElementById('loopLen').textContent=engine.loopSeconds().toFixed(1)+'s';
+}
+
+bindRange('cardW','cardW','px','rebuild');
+bindRange('cardH','cardH','px','rebuild');
+bindRange('gap','gap','px','rebuild');
+bindRange('rad','rad','px','rebuild');
+bindRange('focal','focal','mm','cam');
+bindRange('persp','persp','×','cam');
+bindRange('zoom','zoom','×','cam');
+bindRange('wiggleAmp','wiggleAmp','');
+bindRange('wiggleFreq','wiggleFreq','×');
+bindSeg('wiggleSeg','wiggleMode');
+document.getElementById('wiggleAxis').addEventListener('change',function(e){cfg.wiggleAxis=e.target.value;});
+bindRange('vfxLiquid','vfxLiquid','');
+bindRange('vfxDisp','vfxDisp','');
+bindRange('vfxGlitch','vfxGlitch','');
+bindRange('vfxTwist','vfxTwist','');
+bindRange('vfxJelly','vfxJelly','');
+bindRange('ripFreq','ripFreq','×');
+bindRange('ripSpeed','ripSpeed','×');
+bindRange('bendCurl','bendCurl','×');
+bindRange('gliBands','gliBands','');
+bindRange('gliRate','gliRate','/s');
+bindRange('vfxFloor','vfxFloor','');
+bindRange('vfxGain','vfxGain','×');
+
+// manual dimension inputs <-> sliders
+function linkNum(sliderId,numId,key){
+  var sl=document.getElementById(sliderId),num=document.getElementById(numId);
+  if(!sl||!num)return;
+  sl.addEventListener('input',function(){ num.value=sl.value; });
+  num.addEventListener('change',function(){
+    var v=parseFloat(num.value); if(isNaN(v))return;
+    v=Math.max(parseFloat(num.min),Math.min(parseFloat(num.max),v));
+    num.value=v; cfg[key]=v;
+    if(v>=parseFloat(sl.min)&&v<=parseFloat(sl.max)) sl.value=v;
+    engine.rebuild();
+  });
+}
+linkNum('cardW','cardWn','cardW');
+linkNum('cardH','cardHn','cardH');
+
+// custom resolution
+(function(){
+  var rw=document.getElementById('resWn'),rh=document.getElementById('resHn');
+  function applyCustom(){
+    var w=Math.max(240,Math.min(4096,parseInt(rw.value)||1920));
+    var h=Math.max(240,Math.min(4096,parseInt(rh.value)||1080));
+    rw.value=w;rh.value=h;cfg.resW=w;cfg.resH=h;engine.resize();
+  }
+  rw.addEventListener('change',applyCustom);
+  rh.addEventListener('change',applyCustom);
+})();
+(function(){
+  var P={
+    clean:{vfxLiquid:0,vfxDisp:0,vfxGlitch:0,vfxTwist:0,vfxJelly:0,vfxFloor:0,vfxGain:1},
+    liquid:{vfxLiquid:1.1,ripFreq:1,ripSpeed:2.4,vfxDisp:0.2,bendCurl:1,vfxGlitch:0,vfxTwist:0,vfxJelly:0,vfxFloor:0.15,vfxGain:1},
+    cyber:{vfxLiquid:0,vfxDisp:0.5,bendCurl:1.4,vfxGlitch:0.9,gliBands:14,gliRate:22,vfxTwist:0.3,vfxJelly:0,vfxFloor:0,vfxGain:1.3},
+    jelly:{vfxLiquid:0,vfxDisp:0.35,bendCurl:0.6,vfxGlitch:0,vfxTwist:0,vfxJelly:1.1,vfxFloor:0.1,vfxGain:1.2},
+    max:{vfxLiquid:0.8,vfxDisp:0.7,vfxGlitch:0.9,vfxTwist:0.4,vfxJelly:0.5,vfxFloor:0.1,vfxGain:1.4}
+  };
+  document.getElementById('vfxPreset').querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click',function(){
+      var p=P[b.dataset.v]; if(!p)return;
+      Object.keys(p).forEach(function(k){
+        cfg[k]=p[k];
+        var el=document.getElementById(k);
+        if(el){ el.value=p[k];
+          var vv=document.getElementById(k+'v'); if(vv) vv.textContent=p[k]; }
+      });
+      document.getElementById('vfxPreset').querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on');
+    });
+  });
+})();
+document.getElementById('resetCam').addEventListener('click',function(){
+  cfg.focal=50; cfg.persp=1; cfg.zoom=1;
+  [['focal',50,'mm'],['persp',1,'×'],['zoom',1,'×']].forEach(function(p){
+    var el=document.getElementById(p[0]); el.value=p[1];
+    document.getElementById(p[0]+'v').textContent=p[1]+p[2];
+  });
+  engine.cam();
+});
+bindRange('tiltX','tiltX','°','view');
+bindRange('yawY','yawY','°','view');
+bindRange('rollZ','rollZ','°','view');
+document.getElementById('resetView').addEventListener('click',function(){
+  cfg.tiltX=cfg.yawY=cfg.rollZ=0;
+  ['tiltX','yawY','rollZ'].forEach(function(id){
+    var el=document.getElementById(id); el.value=0;
+    document.getElementById(id+'v').textContent='0°';
+  });
+  engine.view();
+});
+bindRange('revSec','revSec','s');
+bindRange('stepSec','stepSec','s');
+bindRange('hold','hold','%');
+bindRange('fadeW','fadeW','%','look');
+bindSeg('axisSeg','axis','rebuild');
+bindSeg('modeSeg','mode');
+bindSeg('dirSeg','dir',null,function(v){return parseInt(v,10);});
+document.getElementById('easing').addEventListener('change',function(e){cfg.easing=e.target.value;});
+document.getElementById('bg').addEventListener('input',function(e){cfg.bg=e.target.value;engine.look();});
+document.getElementById('fadeOn').addEventListener('change',function(e){cfg.fadeOn=e.target.checked;apply('look');});
+document.getElementById('frameOn').addEventListener('change',function(e){cfg.frameOn=e.target.checked;apply('rebuild');});
+document.getElementById('handle').addEventListener('input',function(e){cfg.handle=e.target.value;apply('rebuild');});
+document.getElementById('avColor').addEventListener('input',function(e){cfg.avColor=e.target.value;apply('rebuild');});
+document.getElementById('resSel').addEventListener('change',function(e){
+  var custom=e.target.value==='custom';
+  document.getElementById('rowResCustom').style.display=custom?'flex':'none';
+  if(custom){
+    document.getElementById('resWn').value=cfg.resW;
+    document.getElementById('resHn').value=cfg.resH;
+  } else {
+    var p=e.target.value.split('x'); cfg.resW=+p[0]; cfg.resH=+p[1]; engine.resize();
+  }
+});
+updateMotionRows(); updateLoopLen();
+
+/* ---------- cards panel ---------- */
+var listEl=document.getElementById('cardList');
+function renderCards(){
+  listEl.innerHTML='';
+  cfg.cards.forEach(function(card,i){
+    var d=document.createElement('div'); d.className='card-item';
+    var head=document.createElement('div'); head.className='head';
+    head.innerHTML='<span class="idx">'+String(i+1).padStart(2,'0')+'</span>';
+    var sel=document.createElement('select'); sel.className='type';
+    ['text','image','gif','video'].forEach(function(t){
+      var o=document.createElement('option'); o.value=t;
+      o.textContent={text:'Text card',image:'Image',gif:'GIF',video:'Video'}[t];
+      if(card.type===t)o.selected=true; sel.appendChild(o);
+    });
+    sel.addEventListener('change',function(){ card.type=sel.value; renderCards(); engine.rebuild(); });
+    head.appendChild(sel);
+    [['▲',-1],['▼',1]].forEach(function(m){
+      var b=document.createElement('button'); b.className='icon-btn'; b.textContent=m[0];
+      b.addEventListener('click',function(){
+        var j=i+m[1]; if(j<0||j>=cfg.cards.length)return;
+        cfg.cards.splice(j,0,cfg.cards.splice(i,1)[0]); renderCards(); engine.rebuild(); updateLoopLen();
+      }); head.appendChild(b);
+    });
+    var del=document.createElement('button'); del.className='icon-btn'; del.textContent='×';
+    del.addEventListener('click',function(){ cfg.cards.splice(i,1); renderCards(); engine.rebuild(); updateLoopLen(); });
+    head.appendChild(del);
+    d.appendChild(head);
+
+    if(card.type==='text'){
+      var ta=document.createElement('textarea'); ta.value=card.text||''; ta.placeholder='Card text — new line = new row';
+      ta.addEventListener('change',function(){ card.text=ta.value; engine.rebuild(); });
+      d.appendChild(ta);
+      var mini=document.createElement('div'); mini.className='mini';
+      mini.innerHTML='<label>bg</label>'; 
+      var c1=document.createElement('input'); c1.type='color'; c1.value=card.color||'#f3aee0';
+      c1.addEventListener('input',function(){ card.color=c1.value; engine.rebuild(); });
+      mini.appendChild(c1);
+      var l2=document.createElement('label'); l2.textContent='text'; mini.appendChild(l2);
+      var c2=document.createElement('input'); c2.type='color'; c2.value=card.textColor||'#111111';
+      c2.addEventListener('input',function(){ card.textColor=c2.value; engine.rebuild(); });
+      mini.appendChild(c2);
+      d.appendChild(mini);
+    } else {
+      var accept={image:'image/*',gif:'image/gif',video:'video/*'}[card.type];
+      var lab=document.createElement('label'); lab.className='filebtn'; lab.textContent='Upload file';
+      var fi=document.createElement('input'); fi.type='file'; fi.accept=accept; fi.style.display='none';
+      fi.addEventListener('change',function(){
+        var f=fi.files[0]; if(!f)return;
+        var r=new FileReader();
+        r.onload=function(){ card.src=r.result; card.name=f.name; renderCards(); engine.rebuild(); };
+        r.readAsDataURL(f);
+      });
+      lab.appendChild(fi); d.appendChild(lab);
+      var ur=document.createElement('div'); ur.className='urlrow';
+      var ui=document.createElement('input'); ui.type='text'; ui.placeholder='…or paste URL';
+      if(card.src && card.src.slice(0,5)!=='data:') ui.value=card.src;
+      var ub=document.createElement('button'); ub.className='icon-btn'; ub.textContent='↵'; ub.style.width='28px';
+      ub.addEventListener('click',function(){ if(ui.value){ card.src=ui.value; card.name=''; renderCards(); engine.rebuild(); } });
+      ur.appendChild(ui); ur.appendChild(ub); d.appendChild(ur);
+      if(card.name){ var fn=document.createElement('div'); fn.className='fname'; fn.textContent='◆ '+card.name; d.appendChild(fn); }
+    }
+    listEl.appendChild(d);
+  });
+}
+document.getElementById('addCard').addEventListener('click',function(){
+  cfg.cards.push({type:'text',text:'NEW\nCARD',color:'#e6f96b',textColor:'#111111'});
+  renderCards(); engine.rebuild(); updateLoopLen();
+});
+renderCards();
+
+/* ---------- export: HTML ---------- */
+document.getElementById('btnHtml').addEventListener('click',function(){
+  var size=JSON.stringify(cfg).length;
+  if(size>60*1024*1024 && !confirm('Embedded media is very large ('+(size/1048576|0)+' MB). Export anyway?')) return;
+  var doc='<!doctype html>\n<html><head><meta charset="utf-8"><title>carousel</title>'
+    +'<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@900&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">'
+    +'<style>html,body{margin:0;height:100%;overflow:hidden;background:'+cfg.bg+'}canvas{display:block;width:100vw;height:100vh}</style>'
+    +'</head><body>'
+    +'<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>'
+    +'<script>\nvar CONFIG='+JSON.stringify(cfg)+';\n'
+    +'var engineMain='+engineMain.toString()+';\n'
+    +'document.fonts.ready.then(function(){engineMain(CONFIG,document.body,{fill:true});});\n'
+    +'<\/script></body></html>';
+  var b=new Blob([doc],{type:'text/html'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='carousel.html'; a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},4000);
+});
+
+/* ---------- export: looped WebM ---------- */
+var recording=false;
+document.getElementById('btnRec').addEventListener('click',function(){
+  if(recording) return;
+  recording=true;
+  var btn=this; btn.disabled=true;
+  var badge=document.getElementById('recBadge'), txt=document.getElementById('recTxt');
+  badge.style.display='flex';
+  var dur=engine.loopSeconds();
+  var stream=engine.canvas.captureStream(60);
+  var mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(function(m){return MediaRecorder.isTypeSupported(m);});
+  var rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:14e6});
+  var chunks=[];
+  rec.ondataavailable=function(e){ if(e.data.size) chunks.push(e.data); };
+  rec.onstop=function(){
+    var b=new Blob(chunks,{type:'video/webm'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='carousel-loop.webm'; a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},4000);
+    badge.style.display='none'; btn.disabled=false; recording=false;
+  };
+  engine.resetTime();
+  rec.start();
+  var t0=performance.now();
+  (function upd(){
+    var el=(performance.now()-t0)/1000;
+    txt.textContent='RECORDING '+Math.min(el,dur).toFixed(1)+' / '+dur.toFixed(1)+'s';
+    if(el<dur){ requestAnimationFrame(upd); } else { rec.stop(); }
+  })();
+});
+</script>
+</body>
+</html>
