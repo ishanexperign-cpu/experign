@@ -250,11 +250,11 @@ footer{border-top:1px solid var(--ink);padding:40px 0 60px}
 
 <noscript>
   <div class="wrap" style="padding:20px 0">
-    <a href="tools/rastrum-v3.html">Rastrum</a> · <a href="tools/cribrum.html">Cribrum</a> ·
-    <a href="tools/fieldglyph.html">Fieldglyph</a> · <a href="tools/conforma.html">Conforma</a> ·
-    <a href="tools/chyron_2.html">Chyron</a> · <a href="tools/cutout_3.html">Cutout</a> ·
-    <a href="tools/filament.html">Filament</a> · <a href="tools/vector-blur-studio_1.html">Vector Blur</a> ·
-    <a href="tools/carousel-studio_F2.html">Carousel Studio</a> · <a href="tools/parametric-sampler_6.html">Sampler</a>
+    <a href="rastrum-v3.html">Rastrum</a> · <a href="cribrum.html">Cribrum</a> ·
+    <a href="fieldglyph.html">Fieldglyph</a> · <a href="conforma.html">Conforma</a> ·
+    <a href="chyron_2.html">Chyron</a> · <a href="cutout_3.html">Cutout</a> ·
+    <a href="filament.html">Filament</a> · <a href="vector-blur-studio_1.html">Vector Blur</a> ·
+    <a href="carousel-studio_F2.html">Carousel Studio</a> · <a href="parametric-sampler_6.html">Sampler</a>
   </div>
 </noscript>
 
@@ -477,7 +477,7 @@ let active=0;
 const touchOnly=matchMedia('(hover: none)').matches;
 TOOLS.forEach((T,i)=>{
   const a=document.createElement('a');
-  a.className='item'; a.href='tools/'+T.file; a.setAttribute('role','listitem');
+  a.className='item'; a.href=T.file; a.setAttribute('role','listitem');
   a.innerHTML=`<span class="no">${String(i+1).padStart(2,'0')}</span>
     <span class="nm">${T.name}</span>
     <span class="cg">${T.cat}</span>`;
@@ -502,7 +502,7 @@ function setActive(i){
   $('#sSize').textContent=T.size;
   $('#sBuild').textContent=T.build;
   $('#sIo').textContent=T.io;
-  viewer.href='tools/'+T.file;
+  viewer.href=T.file;
 }
 /* keyboard */
 addEventListener('keydown',e=>{
