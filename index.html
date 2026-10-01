@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Experign — instrument index</title>
+<meta name="description" content="Ten disposable browser instruments by Experign. One HTML file each. Open, use, discard.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --snow:#f4f3f0; --card:#ecebe7; --mist:#dcdbd5; --ink:#141518;
+  --stone:#7f7f79; --faint:#b6b5ae;
+  --accent:#2b4bf2;
+  --sans:'Schibsted Grotesk',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --snow:#121316; --card:#191a1e; --mist:#25262b; --ink:#edece7;
+    --stone:#8d8d87; --faint:#4b4b47; --accent:#5d76ff;
+  }
+}
+:root[data-theme="dark"]{
+  --snow:#121316; --card:#191a1e; --mist:#25262b; --ink:#edece7;
+  --stone:#8d8d87; --faint:#4b4b47; --accent:#5d76ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 70px)}
+html,body{height:100%}
+body{background:var(--snow);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:var(--accent);color:#fff}
+a{color:inherit;text-decoration:none}
+
+/* faint column grid, the drafting-table underlay */
+#gridlines{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background:repeating-linear-gradient(90deg, var(--mist) 0 1px, transparent 1px calc(100%/12));
+  mask-image:linear-gradient(180deg, transparent 0, #000 120px, #000 calc(100% - 80px), transparent)}
+@media(max-width:800px){ #gridlines{display:none} }
+
+.wrap{max-width:1240px;margin:0 auto;padding:0 clamp(18px,3.6vw,44px);position:relative;z-index:1}
+
+/* ---------- nav + ticker ---------- */
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;
+  background:color-mix(in srgb, var(--snow) 88%, transparent);
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--mist)}
+.nav-in{display:flex;align-items:center;gap:26px;height:56px;
+  max-width:1240px;margin:0 auto;padding:0 clamp(18px,3.6vw,44px)}
+.brand{font-weight:700;font-size:17px;letter-spacing:-.01em;white-space:nowrap}
+.brand sup{font-weight:400;color:var(--stone);font-size:10px;margin-left:2px}
+.ticker{flex:1;overflow:hidden;position:relative;height:16px;
+  mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.ticker-in{display:inline-flex;gap:0;white-space:nowrap;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--stone);
+  animation:tick 36s linear infinite}
+.ticker:hover .ticker-in{animation-play-state:paused}
+.ticker-in span{padding-right:34px}
+.ticker-in b{color:var(--accent);font-weight:500}
+@keyframes tick{to{transform:translateX(-50%)}}
+.navmeta{font-family:var(--mono);font-size:10.5px;color:var(--stone);letter-spacing:.06em;
+  display:flex;gap:18px;white-space:nowrap}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);
+  margin-right:6px;vertical-align:1px;animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media(max-width:760px){ .navmeta .hide-s{display:none} }
+
+/* ---------- masthead ---------- */
+header{padding:clamp(56px,9vh,110px) 0 clamp(40px,6vh,72px)}
+.issue{display:flex;flex-wrap:wrap;gap:10px 34px;font-family:var(--mono);
+  font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);
+  padding-bottom:22px;border-bottom:1px solid var(--ink);margin-bottom:clamp(28px,5vh,52px)}
+.issue b{color:var(--ink);font-weight:500}
+.issue .sp{flex:1}
+h1{font-size:clamp(46px,8.2vw,118px);font-weight:600;letter-spacing:-.04em;
+  line-height:.98;max-width:13ch}
+h1 .alt{font-style:italic;font-weight:400;color:var(--stone);letter-spacing:-.03em}
+.lede{margin-top:30px;max-width:54ch;font-size:clamp(15.5px,1.55vw,18.5px);
+  color:var(--stone);line-height:1.6}
+.lede b{color:var(--ink);font-weight:500}
+
+/* ---------- catalogue: index + viewer ---------- */
+.cat-head{display:flex;align-items:baseline;justify-content:space-between;
+  padding:18px 0 12px;border-bottom:1px solid var(--ink)}
+.cat-head .t{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase}
+.cat-head .n{font-family:var(--mono);font-size:11px;color:var(--stone)}
+.catalogue{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);
+  gap:clamp(22px,3.5vw,54px);align-items:start;padding:10px 0 clamp(60px,9vh,110px)}
+#list{border-top:1px solid transparent}
+.item{display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:baseline;
+  padding:17px 10px 17px 4px;border-bottom:1px solid var(--mist);cursor:pointer;
+  position:relative;transition:background .2s}
+.item:hover,.item.on{background:var(--card)}
+.item .no{font-family:var(--mono);font-size:11px;color:var(--faint);transition:color .2s}
+.item.on .no{color:var(--accent)}
+.item .nm{font-size:clamp(19px,2vw,24px);font-weight:500;letter-spacing:-.015em;
+  transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.item.on .nm{transform:translateX(8px)}
+.item .cg{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--stone);text-align:right}
+.item::before{content:'';position:absolute;left:0;top:0;bottom:-1px;width:2px;
+  background:var(--accent);transform:scaleY(0);transition:transform .25s}
+.item.on::before{transform:scaleY(1)}
+
+/* viewer */
+#viewer{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);
+  border:1px solid var(--ink);background:var(--snow);display:block}
+.v-stage{position:relative;height:clamp(240px,34vh,360px);background:var(--card);
+  border-bottom:1px solid var(--ink);overflow:hidden}
+.v-stage canvas{width:100%;height:100%;display:block}
+.corner{position:absolute;width:14px;height:14px;border:1.5px solid var(--accent);z-index:2}
+.corner.tl{top:8px;left:8px;border-right:0;border-bottom:0}
+.corner.tr{top:8px;right:8px;border-left:0;border-bottom:0}
+.corner.bl{bottom:8px;left:8px;border-right:0;border-top:0}
+.corner.br{bottom:8px;right:8px;border-left:0;border-top:0}
+.live{position:absolute;top:12px;right:30px;font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.2em;color:var(--accent);z-index:2}
+.v-meta{padding:clamp(18px,2.4vw,28px)}
+.v-name{font-size:clamp(28px,3.4vw,44px);font-weight:600;letter-spacing:-.03em;line-height:1;
+  min-height:1.1em}
+.v-desc{margin-top:12px;color:var(--stone);font-size:14.5px;line-height:1.6;min-height:4.2em}
+.v-desc b{color:var(--ink);font-weight:500}
+.spec{margin-top:18px;display:grid;grid-template-columns:repeat(4,auto);gap:4px 26px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.06em}
+.spec .k{color:var(--faint);text-transform:uppercase}
+.spec .v{color:var(--ink)}
+.v-open{margin-top:22px;display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.18em;padding:12px 20px;
+  border:1px solid var(--ink);transition:all .2s}
+.v-open:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.v-open .ar{transition:transform .2s}
+.v-open:hover .ar{transform:translate(3px,-3px)}
+@media(max-width:920px){
+  .catalogue{grid-template-columns:1fr}
+  #viewer{position:relative;top:0;order:-1}
+  .v-desc{min-height:0}
+}
+
+/* ---------- specimen band ---------- */
+.band{position:relative;height:clamp(180px,26vh,280px);border-top:1px solid var(--ink);
+  border-bottom:1px solid var(--ink);background:var(--card);overflow:hidden}
+.band canvas{width:100%;height:100%;display:block}
+.band .cap{position:absolute;left:clamp(18px,3.6vw,44px);bottom:14px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
+
+/* ---------- protocol ---------- */
+.protocol{padding:clamp(64px,10vh,120px) 0;display:grid;
+  grid-template-columns:repeat(3,1fr);gap:clamp(22px,4vw,56px)}
+.pr .k{font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:14px;letter-spacing:.14em}
+.pr h4{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-bottom:10px}
+.pr p{color:var(--stone);font-size:14.5px;line-height:1.65}
+@media(max-width:760px){ .protocol{grid-template-columns:1fr;gap:34px} }
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--ink);padding:40px 0 60px}
+.f-mark{font-size:clamp(56px,11vw,150px);font-weight:700;letter-spacing:-.045em;line-height:.9;
+  color:transparent;-webkit-text-stroke:1px var(--faint);transition:all .4s;cursor:default;
+  user-select:none}
+.f-mark:hover{color:var(--accent);-webkit-text-stroke:1px var(--accent)}
+.f-row{display:flex;flex-wrap:wrap;gap:12px 40px;align-items:baseline;margin-top:28px;
+  font-family:var(--mono);font-size:10.5px;color:var(--stone);letter-spacing:.06em}
+.f-row .sp{flex:1}
+@media (prefers-reduced-motion: reduce){
+  .ticker-in{animation:none}
+  .dot{animation:none}
+  *{transition:none !important}
+}
+</style>
+</head>
+<body>
+<div id="gridlines"></div>
+
+<nav>
+  <div class="nav-in">
+    <a class="brand" href="#">experign<sup>®</sup></a>
+    <div class="ticker"><div class="ticker-in" id="tickerIn"></div></div>
+    <span class="navmeta">
+      <span class="hide-s"><span class="dot"></span>ALL LOCAL</span>
+      <span id="clock">—</span>
+    </span>
+  </div>
+</nav>
+
+<header class="wrap">
+  <div class="issue">
+    <span>Instrument index</span>
+    <span><b>N° 02</b> — 2026</span>
+    <span class="sp"></span>
+    <span class="hide-s">12.97°N 77.59°E</span>
+    <span><b>10</b> instruments</span>
+  </div>
+  <h1><span data-scramble>Disposable tools,</span><br><span class="alt" data-scramble>built for the job at hand.</span></h1>
+  <p class="lede">Ten browser instruments for pattern, motion and type. Each one is a <b>single HTML file</b> — no install, no account, no server. Open it, make the thing, close it.</p>
+</header>
+
+<main class="wrap">
+  <div class="cat-head">
+    <span class="t">Catalogue</span>
+    <span class="n" id="catCount">—</span>
+  </div>
+  <div class="catalogue">
+    <div id="list" role="list"></div>
+    <a id="viewer" href="#">
+      <div class="v-stage">
+        <span class="corner tl"></span><span class="corner tr"></span>
+        <span class="corner bl"></span><span class="corner br"></span>
+        <span class="live">● LIVE</span>
+        <canvas id="vCanvas"></canvas>
+      </div>
+      <div class="v-meta">
+        <div class="v-name" id="vName"></div>
+        <p class="v-desc" id="vDesc"></p>
+        <div class="spec">
+          <span class="k">File</span><span class="k">Size</span><span class="k">Build</span><span class="k">Output</span>
+          <span class="v" id="sFile"></span><span class="v" id="sSize"></span><span class="v" id="sBuild"></span><span class="v" id="sIo"></span>
+        </div>
+        <span class="v-open">OPEN INSTRUMENT <span class="ar">↗</span></span>
+      </div>
+    </a>
+  </div>
+</main>
+
+<div class="band">
+  <canvas id="bandCv"></canvas>
+  <span class="cap">Specimen 00 — cursor-reactive field</span>
+</div>
+
+<main class="wrap">
+  <section class="protocol">
+    <div class="pr"><div class="k">P—01</div><h4>One file</h4><p>Every instrument is a single HTML document. It runs anywhere a browser runs, forever, with nothing to maintain.</p></div>
+    <div class="pr"><div class="k">P—02</div><h4>Purpose-built</h4><p>Each tool does one job with deep controls, instead of many jobs with shallow ones. When the job changes, build another.</p></div>
+    <div class="pr"><div class="k">P—03</div><h4>Nothing leaves</h4><p>Your images, footage and type never touch a server. Everything renders and exports locally, on your machine.</p></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="f-mark">EXPERIGN</div>
+    <div class="f-row">
+      <span>Ishan Upadhyay — creative technologist &amp; industrial designer</span>
+      <span class="sp"></span>
+      <span>Built in the browser · Bengaluru · © 2026</span>
+    </div>
+  </div>
+</footer>
+
+<noscript>
+  <div class="wrap" style="padding:20px 0">
+    <a href="tools/rastrum-v3.html">Rastrum</a> · <a href="tools/cribrum.html">Cribrum</a> ·
+    <a href="tools/fieldglyph.html">Fieldglyph</a> · <a href="tools/conforma.html">Conforma</a> ·
+    <a href="tools/chyron_2.html">Chyron</a> · <a href="tools/cutout_3.html">Cutout</a> ·
+    <a href="tools/filament.html">Filament</a> · <a href="tools/vector-blur-studio_1.html">Vector Blur</a> ·
+    <a href="tools/carousel-studio_F2.html">Carousel Studio</a> · <a href="tools/parametric-sampler_6.html">Sampler</a>
+  </div>
+</noscript>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+
+/* ================= data ================= */
+const TOOLS=[
+ {id:'rastrum',file:'rastrum-v3.html',name:'Rastrum',cat:'Halftone · Fields',build:'V3',size:'49 KB',io:'WebM · SVG seq',
+  desc:'Layered raster engine for image and video. Halftone, ASCII, scatter and string modes, bent by <b>waves, voronoi, curl noise and magnetic attractors</b>.'},
+ {id:'cribrum',file:'cribrum.html',name:'Cribrum',cat:'Dither · Pack · Track',build:'V6',size:'206 KB',io:'WebM · PNG',
+  desc:'Six raster treatments for image and video — <b>1-bit dithering, circle packing, blob tracking</b>, shape sampling, line fields and number mosaics.'},
+ {id:'fieldglyph',file:'fieldglyph.html',name:'Fieldglyph',cat:'Pattern animator',build:'V4',size:'46 KB',io:'WebM · GIF · SVG',
+  desc:'Grid cells driven by a field — <b>sweep, sonar, ripple, spiral</b> or sampled media. Shape morphing with A/B blending and bezier easing. Also ships as a Figma plugin.'},
+ {id:'conforma',file:'conforma.html',name:'Conforma',cat:'Protein motion',build:'V3',size:'120 KB',io:'WebM loop',
+  desc:'Molecular structures that <b>form, separate and rotate</b> — shaders, timeline, environment effects and a constant wiggle, exported as 5–20 s loops.'},
+ {id:'chyron',file:'chyron_2.html',name:'Chyron',cat:'Type in motion',build:'V2',size:'77 KB',io:'WebM · 3 ratios',
+  desc:'Text overlay animator. Google Fonts and open foundries, <b>character-offset reveals</b>, marker effects and dotted-grid backdrops at vertical, square or wide ratios.'},
+ {id:'cutout',file:'cutout_3.html',name:'Cutout',cat:'Area highlighter',build:'V3',size:'74 KB',io:'WebM · PNG seq',
+  desc:'Point at what matters. Mask regions of an image that <b>pop out with staggered animation</b> — labels, glow, gradient fills and animated area-to-area paths.'},
+ {id:'filament',file:'filament.html',name:'Filament',cat:'Line morph',build:'V1',size:'27 KB',io:'WebM',
+  desc:'One unbroken line, redrawn between forms. <b>Single-stroke morphing</b> for logos, figures and abstract marks — the pen never lifts.'},
+ {id:'vblur',file:'vector-blur-studio_1.html',name:'Vector Blur',cat:'Cinematic streaks',build:'V1',size:'39 KB',io:'WebM',
+  desc:'Directional motion blur as a design material. <b>Velocity-field streaking</b> over stills and footage for speed, drift and long-exposure looks.'},
+ {id:'carousel',file:'carousel-studio_F2.html',name:'Carousel Studio',cat:'Orbital composer',build:'F2',size:'123 KB',io:'WebM · HTML',
+  desc:'Card choreography in 3D. <b>Conveyor scrolls, accordion collapses and orbital rings</b> with camera, easing and shader controls.'},
+ {id:'sampler',file:'parametric-sampler_6.html',name:'Sampler',cat:'Parametric grids',build:'V6',size:'74 KB',io:'PNG · batch',
+  desc:'Resample any image into parametric structure — grids, cells and glyphs sized by what the picture holds. <b>Batch process</b> a folder with one recipe.'}
+];
+
+/* ================= theme + helpers ================= */
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+let INK=css('--ink'),ACC=css('--accent'),STONE=css('--stone'),FAINT=css('--faint');
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+  INK=css('--ink');ACC=css('--accent');STONE=css('--stone');FAINT=css('--faint');
+});
+function tickClock(){
+  $('#clock').textContent=new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'}).format(new Date())+' IST · BLR';
+}
+tickClock(); setInterval(tickClock,15000);
+
+/* scramble decode */
+const GLY='▪▫◦·/\\|–—01AEIRSTX';
+function scramble(el,final,dur=520){
+  if(reduced){el.textContent=final;return;}
+  const t0=performance.now();
+  (function f(){
+    const k=Math.min(1,(performance.now()-t0)/dur);
+    const n=Math.floor(final.length*k);
+    let s=final.slice(0,n);
+    for(let i=n;i<final.length;i++) s+=final[i]===' '?' ':GLY[(Math.random()*GLY.length)|0];
+    el.textContent=s;
+    if(k<1) requestAnimationFrame(f);
+  })();
+}
+document.querySelectorAll('[data-scramble]').forEach((el,i)=>{
+  const txt=el.textContent;
+  el.textContent='';
+  setTimeout(()=>scramble(el,txt,700),200+i*260);
+});
+
+/* ================= ticker ================= */
+const tk=$('#tickerIn');
+const seq=TOOLS.map((t,i)=>`<span><b>${String(i+1).padStart(2,'0')}</b> ${t.name.toUpperCase()}</span>`).join('')+'<span>— INSTRUMENT INDEX 2026 —</span>';
+tk.innerHTML=seq+seq;
+
+/* ================= painters ================= */
+const PV={
+  rastrum(c,w,h,t,hot){
+    const cell=Math.max(11,w/26), cols=Math.ceil(w/cell), rows=Math.ceil(h/cell);
+    const cx=w*(0.5+0.25*Math.sin(t*0.5)), cy=h*(0.5+0.25*Math.cos(t*0.37));
+    c.fillStyle=hot?ACC:INK;
+    for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+      const px=x*cell+cell/2, py=y*cell+cell/2;
+      const d=Math.hypot(px-cx,py-cy);
+      const r=Math.max(0,(1-d/(w*0.62)))*cell*0.46;
+      if(r<0.4)continue;
+      c.beginPath(); c.arc(px,py,r,0,6.2832); c.fill();
+    }
+  },
+  cribrum(c,w,h,t,hot){
+    c.strokeStyle=hot?ACC:INK; c.fillStyle=c.strokeStyle; c.lineWidth=1.2;
+    let seed=7;
+    const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+    for(let i=0;i<26;i++){
+      const x=rnd()*w, y=rnd()*h;
+      const base=6+rnd()*Math.min(w,h)*0.11;
+      const r=base*(0.75+0.25*Math.sin(t*1.6+i));
+      c.beginPath(); c.arc(x,y,r,0,6.2832); c.stroke();
+      const r2=r*0.52*(0.7+0.3*Math.sin(t*2.1+i*2));
+      if(r2>2){ c.beginPath(); c.arc(x,y,r2,0,6.2832); i%3?c.stroke():c.fill(); }
+    }
+  },
+  fieldglyph(c,w,h,t,hot){
+    const cell=Math.max(16,w/16), cols=Math.ceil(w/cell), rows=Math.ceil(h/cell);
+    const cx=w/2, cy=h/2, sweep=t*1.1;
+    for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+      const px=x*cell+cell/2, py=y*cell+cell/2;
+      const ang=Math.atan2(py-cy,px-cx);
+      let dd=(ang-sweep)%6.2832; if(dd<0)dd+=6.2832;
+      const k=Math.max(0,1-dd/2.4);
+      c.save(); c.translate(px,py); c.rotate(ang);
+      c.fillStyle=k>0.6?(hot?ACC:INK):STONE;
+      c.globalAlpha=0.25+k*0.75;
+      const s=cell*0.3*(0.4+k);
+      c.beginPath(); c.moveTo(s,0); c.lineTo(-s*0.7,s*0.6); c.lineTo(-s*0.7,-s*0.6); c.closePath(); c.fill();
+      c.restore();
+    }
+    c.globalAlpha=1;
+  },
+  conforma(c,w,h,t,hot){
+    const N=16, pts=[];
+    for(let i=0;i<N;i++){
+      const a=i/N*6.2832, b=i*2.4;
+      const wig=Math.sin(t*2+i)*0.03;
+      const x3=Math.sin(a+t*0.4)*Math.cos(b)*0.33+wig;
+      const y3=Math.sin(b+t*0.3)*0.3;
+      const z3=Math.cos(a+t*0.4)*0.33;
+      pts.push([w/2+x3*w, h/2+y3*h, z3]);
+    }
+    c.strokeStyle=STONE; c.lineWidth=1;
+    for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
+      const d=Math.hypot(pts[i][0]-pts[j][0],pts[i][1]-pts[j][1]);
+      if(d<w*0.2){ c.globalAlpha=0.5; c.beginPath(); c.moveTo(pts[i][0],pts[i][1]); c.lineTo(pts[j][0],pts[j][1]); c.stroke(); }
+    }
+    c.globalAlpha=1;
+    for(const p of pts){
+      const r=3+(p[2]+0.35)*7;
+      c.fillStyle=p[2]>0.1?(hot?ACC:INK):STONE;
+      c.beginPath(); c.arc(p[0],p[1],r,0,6.2832); c.fill();
+    }
+  },
+  chyron(c,w,h,t,hot){
+    const lines=[[0.62,0],[0.84,0.5],[0.45,1.0],[0.7,1.5]];
+    lines.forEach((L,i)=>{
+      const ph=(t*0.9-L[1])%3;
+      const k=ph<0?0:Math.min(1,Math.max(0,ph<2?ph*1.6:1-(ph-2)*2));
+      const y=h*0.26+i*h*0.17;
+      c.fillStyle=i===0?(hot?ACC:INK):STONE;
+      c.globalAlpha=Math.max(0,Math.min(1,k*1.4));
+      c.fillRect(w*0.14,y,w*0.58*L[0]*Math.min(1,k*1.3),i===0?h*0.085:h*0.05);
+    });
+    c.globalAlpha=1;
+  },
+  cutout(c,w,h,t,hot){
+    c.fillStyle=STONE; c.globalAlpha=0.2;
+    c.fillRect(w*0.1,h*0.14,w*0.8,h*0.72); c.globalAlpha=1;
+    const k=0.5+0.5*Math.sin(t*2.2);
+    const bx=w*0.18+w*0.32*(0.5+0.5*Math.sin(t*0.6));
+    const bw=w*0.24, bh=h*0.32, by=h*0.3;
+    c.strokeStyle=hot?ACC:INK; c.lineWidth=1.6;
+    c.setLineDash([5,4]); c.lineDashOffset=-t*18;
+    if('roundRect'in c){c.beginPath(); c.roundRect(bx,by,bw,bh,7); c.stroke();}
+    else c.strokeRect(bx,by,bw,bh);
+    c.setLineDash([]);
+    c.fillStyle=c.strokeStyle;
+    c.beginPath(); c.arc(bx+bw,by,3+k*1.5,0,6.2832); c.fill();
+    c.beginPath(); c.moveTo(bx+bw,by); c.lineTo(bx+bw+18,by-12); c.lineTo(bx+bw+40,by-12); c.stroke();
+  },
+  filament(c,w,h,t,hot){
+    c.strokeStyle=hot?ACC:INK; c.lineWidth=1.8; c.lineCap='round';
+    c.beginPath();
+    const m=0.5+0.5*Math.sin(t*0.7);
+    for(let i=0;i<=220;i++){
+      const u=i/220*Math.PI*2;
+      const r1=[Math.sin(u*2+t)*0.36, Math.sin(u*3)*0.3];
+      const r2=[Math.cos(u)*0.34, Math.sin(u*2+t*0.6)*0.33];
+      const x=w*0.5+w*((1-m)*r1[0]+m*r2[0]);
+      const y=h*0.5+h*((1-m)*r1[1]+m*r2[1]);
+      i?c.lineTo(x,y):c.moveTo(x,y);
+    }
+    c.stroke();
+  },
+  vblur(c,w,h,t,hot){
+    for(let i=0;i<18;i++){
+      const y=(i+0.5)/18*h;
+      const sp=0.4+((i*73)%17)/17*1.2;
+      const x=((t*60*sp+i*97)%(w*1.5))-w*0.25;
+      const len=w*(0.12+((i*31)%13)/13*0.3);
+      const g=c.createLinearGradient(x,0,x+len,0);
+      const col=hot?ACC:INK;
+      g.addColorStop(0,col+'00'); g.addColorStop(0.6,col); g.addColorStop(1,col+'00');
+      c.strokeStyle=g; c.lineWidth=i%4===0?2.4:1.1;
+      c.beginPath(); c.moveTo(x,y); c.lineTo(x+len,y); c.stroke();
+    }
+  },
+  carousel(c,w,h,t,hot){
+    const n=5, order=[...Array(n).keys()];
+    order.sort((a,b)=>Math.cos(t+a/n*6.2832)-Math.cos(t+b/n*6.2832));
+    for(const i of order){
+      const ph=t+i/n*6.2832;
+      const x=w*0.5+Math.sin(ph)*w*0.3;
+      const z=Math.cos(ph);
+      const s=0.62+0.38*(z*0.5+0.5);
+      const cw=w*0.24*s, ch=h*0.56*s;
+      c.fillStyle=z>0.55?(hot?ACC:INK):STONE;
+      c.globalAlpha=0.35+0.65*(z*0.5+0.5);
+      if('roundRect'in c){c.beginPath(); c.roundRect(x-cw/2,h*0.5-ch/2,cw,ch,6*s); c.fill();}
+      else c.fillRect(x-cw/2,h*0.5-ch/2,cw,ch);
+    }
+    c.globalAlpha=1;
+  },
+  sampler(c,w,h,t,hot){
+    const cell=Math.max(14,w/22), cols=Math.ceil(w/cell), rows=Math.ceil(h/cell);
+    c.fillStyle=hot?ACC:INK;
+    for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+      const k=0.5+0.5*Math.sin(x*0.8+t*1.4)*Math.cos(y*0.9-t*0.9);
+      const s=cell*0.78*k;
+      if(s<1.2)continue;
+      c.fillRect(x*cell+(cell-s)/2, y*cell+(cell-s)/2, s, s);
+    }
+  }
+};
+
+/* ================= list + viewer ================= */
+const list=$('#list'), viewer=$('#viewer');
+let active=0;
+const touchOnly=matchMedia('(hover: none)').matches;
+TOOLS.forEach((T,i)=>{
+  const a=document.createElement('a');
+  a.className='item'; a.href='tools/'+T.file; a.setAttribute('role','listitem');
+  a.innerHTML=`<span class="no">${String(i+1).padStart(2,'0')}</span>
+    <span class="nm">${T.name}</span>
+    <span class="cg">${T.cat}</span>`;
+  a.addEventListener('pointerenter',()=>{ if(!touchOnly) setActive(i); });
+  a.addEventListener('focus',()=>setActive(i));
+  a.addEventListener('click',e=>{
+    if(touchOnly && active!==i){ e.preventDefault(); setActive(i); viewer.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  });
+  list.appendChild(a);
+});
+$('#catCount').textContent='10 instruments — hover to inspect';
+
+const vcv=$('#vCanvas'), vc=vcv.getContext('2d');
+function setActive(i){
+  if(active===i && viewer.dataset.set) return;
+  active=i; viewer.dataset.set='1';
+  const T=TOOLS[i];
+  document.querySelectorAll('.item').forEach((el,j)=>el.classList.toggle('on',j===i));
+  scramble($('#vName'),T.name.toUpperCase(),380);
+  $('#vDesc').innerHTML=T.desc;
+  $('#sFile').textContent=T.file;
+  $('#sSize').textContent=T.size;
+  $('#sBuild').textContent=T.build;
+  $('#sIo').textContent=T.io;
+  viewer.href='tools/'+T.file;
+}
+/* keyboard */
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowDown'){ e.preventDefault(); setActive(Math.min(TOOLS.length-1,active+1)); }
+  if(e.key==='ArrowUp'){ e.preventDefault(); setActive(Math.max(0,active-1)); }
+});
+
+/* ================= band (cursor-reactive field) ================= */
+const band=$('#bandCv'), bc=band.getContext('2d');
+let bmx=-999,bmy=-999;
+band.parentElement.addEventListener('pointermove',e=>{
+  const r=band.getBoundingClientRect();
+  bmx=e.clientX-r.left; bmy=e.clientY-r.top;
+},{passive:true});
+band.parentElement.addEventListener('pointerleave',()=>{bmx=bmy=-999;});
+
+/* ================= sizing + loop ================= */
+function size(cv){
+  const dpr=Math.min(2,devicePixelRatio||1);
+  const r=cv.getBoundingClientRect();
+  cv.width=Math.max(2,r.width*dpr); cv.height=Math.max(2,r.height*dpr);
+  cv.getContext('2d').setTransform(dpr,0,0,dpr,0,0);
+  cv._w=r.width; cv._h=r.height;
+}
+function sizeAll(){ size(vcv); size(band); }
+addEventListener('resize',sizeAll);
+
+let vHot=false;
+viewer.addEventListener('pointerenter',()=>vHot=true);
+viewer.addEventListener('pointerleave',()=>vHot=false);
+
+const T0=performance.now();
+function loop(){
+  const t=(performance.now()-T0)/1000;
+  if(vcv._w){
+    vc.clearRect(0,0,vcv._w,vcv._h);
+    PV[TOOLS[active].id](vc,vcv._w,vcv._h,t*(vHot?1.7:1),vHot);
+  }
+  if(band._w){
+    bc.clearRect(0,0,band._w,band._h);
+    const cell=20;
+    for(let y=cell/2;y<band._h;y+=cell)for(let x=cell/2;x<band._w;x+=cell){
+      const breathe=1.3+0.8*Math.sin(t*0.8+x*0.02+y*0.03);
+      const d=Math.hypot(x-bmx,y-bmy);
+      const lift=Math.max(0,1-d/130);
+      bc.fillStyle=lift>0.05?ACC:STONE;
+      bc.globalAlpha=0.3+lift*0.7;
+      bc.beginPath(); bc.arc(x,y,breathe+lift*5,0,6.2832); bc.fill();
+    }
+    bc.globalAlpha=1;
+  }
+  if(!reduced) requestAnimationFrame(loop);
+}
+sizeAll();
+setActive(0);
+requestAnimationFrame(loop);
+if(reduced){
+  if(vcv._w){ vc.clearRect(0,0,vcv._w,vcv._h); PV[TOOLS[0].id](vc,vcv._w,vcv._h,2.5,false); }
+  if(band._w){
+    const cell=20;
+    for(let y=cell/2;y<band._h;y+=cell)for(let x=cell/2;x<band._w;x+=cell){
+      bc.fillStyle=STONE; bc.globalAlpha=0.35;
+      bc.beginPath(); bc.arc(x,y,1.6,0,6.2832); bc.fill();
+    }
+    bc.globalAlpha=1;
+  }
+}
+</script>
+</body>
+</html>
