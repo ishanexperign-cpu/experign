@@ -84,7 +84,7 @@ h1 .alt{font-style:italic;font-weight:400;color:var(--stone);letter-spacing:-.03
 .lede b{color:var(--ink);font-weight:500}
 
 /* ---------- catalogue: index + viewer ---------- */
-.cat-head{display:flex;align-items:baseline;justify-content:space-between;
+.cat-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
   padding:18px 0 12px;border-bottom:1px solid var(--ink)}
 .cat-head .t{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase}
 .cat-head .n{font-family:var(--mono);font-size:11px;color:var(--stone)}
@@ -102,6 +102,22 @@ h1 .alt{font-style:italic;font-weight:400;color:var(--stone);letter-spacing:-.03
 .item.on .nm{transform:translateX(8px)}
 .item .cg{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
   color:var(--stone);text-align:right}
+.filters{display:flex;flex-wrap:wrap;gap:6px;padding:14px 0 4px}
+.fbtn{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;padding:8px 12px;
+  border:1px solid var(--mist);background:transparent;color:var(--stone);cursor:pointer;transition:all .2s}
+.fbtn:hover{border-color:var(--ink);color:var(--ink)}
+.fbtn[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--snow)}
+.fbtn i{font-style:normal;color:var(--faint);margin-left:6px}
+.fbtn[aria-pressed="true"] i{color:var(--snow);opacity:.6}
+.sec{display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:baseline;padding:28px 10px 10px 4px;
+  border-bottom:1px solid var(--ink)}
+.sec:first-child{padding-top:10px}
+.sec .sk{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--accent)}
+.sec .st{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.sec .sd{grid-column:2/4;color:var(--stone);font-size:13px;line-height:1.5;margin-top:4px;max-width:46ch}
+.sec .sn{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.1em}
+.v-sec{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;min-height:1.2em}
+[hidden]{display:none!important}
 .item::before{content:'';position:absolute;left:0;top:0;bottom:-1px;width:2px;
   background:var(--accent);transform:scaleY(0);transition:transform .25s}
 .item.on::before{transform:scaleY(1)}
@@ -202,6 +218,7 @@ footer{border-top:1px solid var(--ink);padding:40px 0 60px}
     <span class="t">Catalogue</span>
     <span class="n" id="catCount">—</span>
   </div>
+  <div class="filters" id="filters" role="group" aria-label="Filter by section"></div>
   <div class="catalogue">
     <div id="list" role="list"></div>
     <a id="viewer" href="#">
@@ -212,6 +229,7 @@ footer{border-top:1px solid var(--ink);padding:40px 0 60px}
         <canvas id="vCanvas"></canvas>
       </div>
       <div class="v-meta">
+        <div class="v-sec" id="vSec"></div>
         <div class="v-name" id="vName"></div>
         <p class="v-desc" id="vDesc"></p>
         <div class="spec">
@@ -249,13 +267,11 @@ footer{border-top:1px solid var(--ink);padding:40px 0 60px}
 </footer>
 
 <noscript>
-  <div class="wrap" style="padding:20px 0">
-    <a href="rastrum-v3.html">Rastrum</a> · <a href="cribrum.html">Cribrum</a> · <a href="punctum.html">Punctum</a> ·
-    <a href="fieldglyph.html">Fieldglyph</a> · <a href="conforma.html">Conforma</a> ·
-    <a href="chyron_2.html">Chyron</a> · <a href="motus.html">Motus</a> · <a href="cutout_3.html">Cutout</a> ·
-    <a href="filament.html">Filament</a> · <a href="mora.html">Mora</a> · <a href="vector-blur-studio_1.html">Vector Blur</a> ·
-    <a href="zoetrope.html">Zoetrope</a> ·
-    <a href="carousel-studio_F2.html">Carousel Studio</a> · <a href="parametric-sampler_6.html">Sampler</a>
+  <div class="wrap" style="padding:20px 0;line-height:2">
+    <b>Image &amp; video processors</b> — <a href="rastrum-v3.html">Rastrum</a> · <a href="cribrum.html">Cribrum</a> · <a href="mora.html">Mora</a> · <a href="vector-blur-studio_1.html">Vector Blur</a> · <a href="parametric-sampler_6.html">Sampler</a><br>
+    <b>Scientific &amp; spatial visualisers</b> — <a href="conforma.html">Conforma</a> · <a href="punctum.html">Punctum</a><br>
+    <b>Motion, type &amp; pattern</b> — <a href="chyron_2.html">Chyron</a> · <a href="motus.html">Motus</a> · <a href="filament.html">Filament</a> · <a href="fieldglyph.html">Fieldglyph</a><br>
+    <b>UI &amp; interactions</b> — <a href="cutout_3.html">Cutout</a> · <a href="zoetrope.html">Zoetrope</a> · <a href="carousel-studio_F2.html">Carousel Studio</a><br>
   </div>
 </noscript>
 
@@ -264,35 +280,41 @@ footer{border-top:1px solid var(--ink);padding:40px 0 60px}
 const $=s=>document.querySelector(s);
 
 /* ================= data ================= */
+const SECTIONS=[
+ {id:'image',name:'Image & video processors',desc:'Feed in a picture or footage. Get back a treatment: halftone, dither, delay, streak or structure.'},
+ {id:'science',name:'Scientific & spatial visualisers',desc:'Data and matter made visible in three dimensions: molecules forming, point clouds lifting off the page.'},
+ {id:'motion',name:'Motion, type & pattern',desc:'Choreography for marks, letters, lines and fields, built to loop and export.'},
+ {id:'ui',name:'UI & interactions',desc:'Interface storytelling: highlight what matters, carousel the cards, spin the ring.'}
+];
 const TOOLS=[
- {id:'rastrum',file:'rastrum-v3.html',name:'Rastrum',cat:'Halftone · Fields',build:'V3',size:'49 KB',io:'WebM · SVG seq',
+ {id:'rastrum',sec:'image',file:'rastrum-v3.html',name:'Rastrum',cat:'Halftone · Fields',build:'V3',size:'49 KB',io:'WebM · SVG seq',
   desc:'Layered raster engine for image and video. Halftone, ASCII, scatter and string modes, bent by <b>waves, voronoi, curl noise and magnetic attractors</b>.'},
- {id:'cribrum',file:'cribrum.html',name:'Cribrum',cat:'Dither · Pack · Track',build:'V7',size:'234 KB',io:'MP4 · SVG · PNG',
+ {id:'cribrum',sec:'image',file:'cribrum.html',name:'Cribrum',cat:'Dither · Pack · Track',build:'V7',size:'234 KB',io:'MP4 · SVG · PNG',
   desc:'Six raster treatments for image and video — <b>1-bit dithering, circle packing, blob tracking</b>, shape sampling, line fields and number mosaics. Stitch up to five clips into one take that morphs across every cut.'},
- {id:'punctum',file:'punctum.html',name:'Punctum',cat:'Point clouds',build:'V2',size:'159 KB',io:'MP4 · PLY · PNG',
-  desc:'Cribrum’s companion in space. Images, footage and camera lifted into <b>GPU point clouds</b> — relief, terrain, sphere, torus, tunnel — with flow fields, depth of field and <b>particle morphs between clips</b>. Exports the cloud as PLY.'},
- {id:'fieldglyph',file:'fieldglyph.html',name:'Fieldglyph',cat:'Pattern animator',build:'V4',size:'46 KB',io:'WebM · GIF · SVG',
-  desc:'Grid cells driven by a field — <b>sweep, sonar, ripple, spiral</b> or sampled media. Shape morphing with A/B blending and bezier easing. Also ships as a Figma plugin.'},
- {id:'conforma',file:'conforma.html',name:'Conforma',cat:'Protein motion',build:'V3',size:'120 KB',io:'WebM loop',
-  desc:'Molecular structures that <b>form, separate and rotate</b> — shaders, timeline, environment effects and a constant wiggle, exported as 5–20 s loops.'},
- {id:'chyron',file:'chyron_2.html',name:'Chyron',cat:'Type in motion',build:'V2',size:'77 KB',io:'WebM · 3 ratios',
-  desc:'Text overlay animator. Google Fonts and open foundries, <b>character-offset reveals</b>, marker effects and dotted-grid backdrops at vertical, square or wide ratios.'},
- {id:'motus',file:'motus.html',name:'Motus',cat:'Mark choreography',build:'V2',size:'78 KB',io:'MP4 · Lottie',
-  desc:'Up to ten icons or logos set in motion — <b>pendulums, delayed orbits, linear and circular arrays</b>, stacks and collapses, with fine control over easing, spacing and overlap. Exports MP4 and Lottie JSON.'},
- {id:'cutout',file:'cutout_3.html',name:'Cutout',cat:'Area highlighter',build:'V3',size:'74 KB',io:'WebM · PNG seq',
-  desc:'Point at what matters. Mask regions of an image that <b>pop out with staggered animation</b> — labels, glow, gradient fills and animated area-to-area paths.'},
- {id:'filament',file:'filament.html',name:'Filament',cat:'Line morph',build:'V1',size:'27 KB',io:'WebM',
-  desc:'One unbroken line, redrawn between forms. <b>Single-stroke morphing</b> for logos, figures and abstract marks — the pen never lifts.'},
- {id:'mora',file:'mora.html',name:'Mora',cat:'Time-offset grid',build:'V2',size:'103 KB',io:'MP4 · WebM',
+ {id:'mora',sec:'image',file:'mora.html',name:'Mora',cat:'Time-offset grid',build:'V2',size:'103 KB',io:'MP4 · WebM',
   desc:'Video split into rows, columns or grids, each cell running <b>a little ahead or behind</b> the last. Progressive delays, random widths, cylinder and sphere warps, offsets driven by hue or luma, and a 1-bit finish.'},
- {id:'vblur',file:'vector-blur-studio_1.html',name:'Vector Blur',cat:'Cinematic streaks',build:'V1',size:'39 KB',io:'WebM',
+ {id:'vblur',sec:'image',file:'vector-blur-studio_1.html',name:'Vector Blur',cat:'Cinematic streaks',build:'V1',size:'39 KB',io:'WebM',
   desc:'Directional motion blur as a design material. <b>Velocity-field streaking</b> over stills and footage for speed, drift and long-exposure looks.'},
- {id:'zoetrope',file:'zoetrope.html',name:'Zoetrope',cat:'Ring carousel',build:'V5',size:'55 KB',io:'WebM · HTML',
+ {id:'sampler',sec:'image',file:'parametric-sampler_6.html',name:'Sampler',cat:'Parametric grids',build:'V6',size:'74 KB',io:'PNG · batch',
+  desc:'Resample any image into parametric structure — grids, cells and glyphs sized by what the picture holds. <b>Batch process</b> a folder with one recipe.'},
+ {id:'conforma',sec:'science',file:'conforma.html',name:'Conforma',cat:'Protein motion',build:'V3',size:'120 KB',io:'WebM loop',
+  desc:'Molecular structures that <b>form, separate and rotate</b> — shaders, timeline, environment effects and a constant wiggle, exported as 5–20 s loops.'},
+ {id:'punctum',sec:'science',file:'punctum.html',name:'Punctum',cat:'Point clouds',build:'V2',size:'159 KB',io:'MP4 · PLY · PNG',
+  desc:'Cribrum’s companion in space. Images, footage and camera lifted into <b>GPU point clouds</b> — relief, terrain, sphere, torus, tunnel — with flow fields, depth of field and <b>particle morphs between clips</b>. Exports the cloud as PLY.'},
+ {id:'chyron',sec:'motion',file:'chyron_2.html',name:'Chyron',cat:'Type in motion',build:'V2',size:'77 KB',io:'WebM · 3 ratios',
+  desc:'Text overlay animator. Google Fonts and open foundries, <b>character-offset reveals</b>, marker effects and dotted-grid backdrops at vertical, square or wide ratios.'},
+ {id:'motus',sec:'motion',file:'motus.html',name:'Motus',cat:'Mark choreography',build:'V2',size:'78 KB',io:'MP4 · Lottie',
+  desc:'Up to ten icons or logos set in motion — <b>pendulums, delayed orbits, linear and circular arrays</b>, stacks and collapses, with fine control over easing, spacing and overlap. Exports MP4 and Lottie JSON.'},
+ {id:'filament',sec:'motion',file:'filament.html',name:'Filament',cat:'Line morph',build:'V1',size:'27 KB',io:'WebM',
+  desc:'One unbroken line, redrawn between forms. <b>Single-stroke morphing</b> for logos, figures and abstract marks — the pen never lifts.'},
+ {id:'fieldglyph',sec:'motion',file:'fieldglyph.html',name:'Fieldglyph',cat:'Pattern animator',build:'V4',size:'46 KB',io:'WebM · GIF · SVG',
+  desc:'Grid cells driven by a field — <b>sweep, sonar, ripple, spiral</b> or sampled media. Shape morphing with A/B blending and bezier easing. Also ships as a Figma plugin.'},
+ {id:'cutout',sec:'ui',file:'cutout_3.html',name:'Cutout',cat:'Area highlighter',build:'V3',size:'74 KB',io:'WebM · PNG seq',
+  desc:'Point at what matters. Mask regions of an image that <b>pop out with staggered animation</b> — labels, glow, gradient fills and animated area-to-area paths.'},
+ {id:'zoetrope',sec:'ui',file:'zoetrope.html',name:'Zoetrope',cat:'Ring carousel',build:'V5',size:'55 KB',io:'WebM · HTML',
   desc:'Cards on a spinning 3D ring. Focal-length camera, raycast hover wiggle and <b>cloth, twist and glitch vertex shaders</b> driven by rotation speed.'},
- {id:'carousel',file:'carousel-studio_F2.html',name:'Carousel Studio',cat:'Orbital composer',build:'F2',size:'123 KB',io:'WebM · HTML',
-  desc:'Card choreography in 3D. <b>Conveyor scrolls, accordion collapses and orbital rings</b> with camera, easing and shader controls.'},
- {id:'sampler',file:'parametric-sampler_6.html',name:'Sampler',cat:'Parametric grids',build:'V6',size:'74 KB',io:'PNG · batch',
-  desc:'Resample any image into parametric structure — grids, cells and glyphs sized by what the picture holds. <b>Batch process</b> a folder with one recipe.'}
+ {id:'carousel',sec:'ui',file:'carousel-studio_F2.html',name:'Carousel Studio',cat:'Orbital composer',build:'F2',size:'123 KB',io:'WebM · HTML',
+  desc:'Card choreography in 3D. <b>Conveyor scrolls, accordion collapses and orbital rings</b> with camera, easing and shader controls.'}
 ];
 
 /* ================= theme + helpers ================= */
@@ -547,28 +569,55 @@ const PV={
 const list=$('#list'), viewer=$('#viewer');
 let active=0;
 const touchOnly=matchMedia('(hover: none)').matches;
-TOOLS.forEach((T,i)=>{
-  const a=document.createElement('a');
-  a.className='item'; a.href=T.file; a.setAttribute('role','listitem');
-  a.innerHTML=`<span class="no">${String(i+1).padStart(2,'0')}</span>
+let filter='all';
+const secName=id=>(SECTIONS.find(x=>x.id===id)||{}).name||'';
+SECTIONS.forEach((S,si)=>{
+  const n=TOOLS.filter(t=>t.sec===S.id).length;
+  const h=document.createElement('div');
+  h.className='sec'; h.dataset.sec=S.id; h.setAttribute('role','presentation');
+  h.innerHTML=`<span class="sk">§${String(si+1).padStart(2,'0')}</span><span class="st">${S.name.replace('&','&amp;')}</span><span class="sn">${String(n).padStart(2,'0')}</span><span class="sd">${S.desc}</span>`;
+  list.appendChild(h);
+  TOOLS.forEach((T,i)=>{
+    if(T.sec!==S.id) return;
+    const a=document.createElement('a');
+    a.className='item'; a.href=T.file; a.dataset.sec=T.sec; a.dataset.i=i; a.setAttribute('role','listitem');
+    a.innerHTML=`<span class="no">${String(i+1).padStart(2,'0')}</span>
     <span class="nm">${T.name}</span>
     <span class="cg">${T.cat}</span>`;
-  a.addEventListener('pointerenter',()=>{ if(!touchOnly) setActive(i); });
-  a.addEventListener('focus',()=>setActive(i));
-  a.addEventListener('click',e=>{
-    if(touchOnly && active!==i){ e.preventDefault(); setActive(i); viewer.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+    a.addEventListener('pointerenter',()=>{ if(!touchOnly) setActive(i); });
+    a.addEventListener('focus',()=>setActive(i));
+    a.addEventListener('click',e=>{
+      if(touchOnly && active!==i){ e.preventDefault(); setActive(i); viewer.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+    });
+    list.appendChild(a);
   });
-  list.appendChild(a);
 });
-$('#catCount').textContent=TOOLS.length+' instruments — hover to inspect';
+$('#catCount').textContent=TOOLS.length+' instruments in '+SECTIONS.length+' sections'+(touchOnly?'':' — hover to inspect');
 $('#toolCount').textContent=TOOLS.length;
+const fl=$('#filters');
+[{id:'all',name:'All'},...SECTIONS].forEach(S=>{
+  const b=document.createElement('button'); b.type='button'; b.className='fbtn'; b.dataset.f=S.id;
+  const n=S.id==='all'?TOOLS.length:TOOLS.filter(t=>t.sec===S.id).length;
+  b.innerHTML=`${S.name.replace('&','&amp;')}<i>${n}</i>`;
+  b.setAttribute('aria-pressed',S.id==='all');
+  b.onclick=()=>applyFilter(S.id);
+  fl.appendChild(b);
+});
+const visibleIdx=()=>TOOLS.map((t,i)=>i).filter(i=>filter==='all'||TOOLS[i].sec===filter);
+function applyFilter(f){
+  filter=f;
+  fl.querySelectorAll('.fbtn').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f===f));
+  list.querySelectorAll('.sec,.item').forEach(el=>{ el.hidden=!(f==='all'||el.dataset.sec===f); });
+  const v=visibleIdx(); if(!v.includes(active)) setActive(v[0]);
+}
 
 const vcv=$('#vCanvas'), vc=vcv.getContext('2d');
 function setActive(i){
   if(active===i && viewer.dataset.set) return;
   active=i; viewer.dataset.set='1';
   const T=TOOLS[i];
-  document.querySelectorAll('.item').forEach((el,j)=>el.classList.toggle('on',j===i));
+  document.querySelectorAll('.item').forEach(el=>el.classList.toggle('on',+el.dataset.i===i));
+  $('#vSec').textContent=secName(T.sec);
   scramble($('#vName'),T.name.toUpperCase(),380);
   $('#vDesc').innerHTML=T.desc;
   $('#sFile').textContent=T.file;
@@ -579,8 +628,9 @@ function setActive(i){
 }
 /* keyboard */
 addEventListener('keydown',e=>{
-  if(e.key==='ArrowDown'){ e.preventDefault(); setActive(Math.min(TOOLS.length-1,active+1)); }
-  if(e.key==='ArrowUp'){ e.preventDefault(); setActive(Math.max(0,active-1)); }
+  const v=visibleIdx(), k=v.indexOf(active);
+  if(e.key==='ArrowDown'){ e.preventDefault(); setActive(v[Math.min(v.length-1,k+1)]); }
+  if(e.key==='ArrowUp'){ e.preventDefault(); setActive(v[Math.max(0,k-1)]); }
 });
 
 /* ================= band (cursor-reactive field) ================= */
