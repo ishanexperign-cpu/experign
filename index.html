@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Experign — instrument index</title>
-<meta name="description" content="Eleven disposable browser instruments by Experign. One HTML file each. Open, use, discard.">
+<meta name="description" content="Fourteen disposable browser instruments by Experign. One HTML file each. Open, use, discard.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -191,10 +191,10 @@ footer{border-top:1px solid var(--ink);padding:40px 0 60px}
     <span><b>N° 02</b> — 2026</span>
     <span class="sp"></span>
     <span class="hide-s">12.97°N 77.59°E</span>
-    <span><b>11</b> instruments</span>
+    <span><b id="toolCount">14</b> instruments</span>
   </div>
   <h1><span data-scramble>Disposable tools,</span><br><span class="alt" data-scramble>built for the job at hand.</span></h1>
-  <p class="lede">Eleven browser instruments for pattern, motion and type. Each one is a <b>single HTML file</b> — no install, no account, no server. Open it, make the thing, close it.</p>
+  <p class="lede">Fourteen browser instruments for pattern, motion, space and type. Each one is a <b>single HTML file</b> — no install, no account, no server. Open it, make the thing, close it.</p>
 </header>
 
 <main class="wrap">
@@ -250,10 +250,10 @@ footer{border-top:1px solid var(--ink);padding:40px 0 60px}
 
 <noscript>
   <div class="wrap" style="padding:20px 0">
-    <a href="rastrum-v3.html">Rastrum</a> · <a href="cribrum.html">Cribrum</a> ·
+    <a href="rastrum-v3.html">Rastrum</a> · <a href="cribrum.html">Cribrum</a> · <a href="punctum.html">Punctum</a> ·
     <a href="fieldglyph.html">Fieldglyph</a> · <a href="conforma.html">Conforma</a> ·
-    <a href="chyron_2.html">Chyron</a> · <a href="cutout_3.html">Cutout</a> ·
-    <a href="filament.html">Filament</a> · <a href="vector-blur-studio_1.html">Vector Blur</a> ·
+    <a href="chyron_2.html">Chyron</a> · <a href="motus.html">Motus</a> · <a href="cutout_3.html">Cutout</a> ·
+    <a href="filament.html">Filament</a> · <a href="mora.html">Mora</a> · <a href="vector-blur-studio_1.html">Vector Blur</a> ·
     <a href="zoetrope.html">Zoetrope</a> ·
     <a href="carousel-studio_F2.html">Carousel Studio</a> · <a href="parametric-sampler_6.html">Sampler</a>
   </div>
@@ -267,18 +267,24 @@ const $=s=>document.querySelector(s);
 const TOOLS=[
  {id:'rastrum',file:'rastrum-v3.html',name:'Rastrum',cat:'Halftone · Fields',build:'V3',size:'49 KB',io:'WebM · SVG seq',
   desc:'Layered raster engine for image and video. Halftone, ASCII, scatter and string modes, bent by <b>waves, voronoi, curl noise and magnetic attractors</b>.'},
- {id:'cribrum',file:'cribrum.html',name:'Cribrum',cat:'Dither · Pack · Track',build:'V6',size:'206 KB',io:'WebM · PNG',
-  desc:'Six raster treatments for image and video — <b>1-bit dithering, circle packing, blob tracking</b>, shape sampling, line fields and number mosaics.'},
+ {id:'cribrum',file:'cribrum.html',name:'Cribrum',cat:'Dither · Pack · Track',build:'V7',size:'234 KB',io:'MP4 · SVG · PNG',
+  desc:'Six raster treatments for image and video — <b>1-bit dithering, circle packing, blob tracking</b>, shape sampling, line fields and number mosaics. Stitch up to five clips into one take that morphs across every cut.'},
+ {id:'punctum',file:'punctum.html',name:'Punctum',cat:'Point clouds',build:'V2',size:'159 KB',io:'MP4 · PLY · PNG',
+  desc:'Cribrum’s companion in space. Images, footage and camera lifted into <b>GPU point clouds</b> — relief, terrain, sphere, torus, tunnel — with flow fields, depth of field and <b>particle morphs between clips</b>. Exports the cloud as PLY.'},
  {id:'fieldglyph',file:'fieldglyph.html',name:'Fieldglyph',cat:'Pattern animator',build:'V4',size:'46 KB',io:'WebM · GIF · SVG',
   desc:'Grid cells driven by a field — <b>sweep, sonar, ripple, spiral</b> or sampled media. Shape morphing with A/B blending and bezier easing. Also ships as a Figma plugin.'},
  {id:'conforma',file:'conforma.html',name:'Conforma',cat:'Protein motion',build:'V3',size:'120 KB',io:'WebM loop',
   desc:'Molecular structures that <b>form, separate and rotate</b> — shaders, timeline, environment effects and a constant wiggle, exported as 5–20 s loops.'},
  {id:'chyron',file:'chyron_2.html',name:'Chyron',cat:'Type in motion',build:'V2',size:'77 KB',io:'WebM · 3 ratios',
   desc:'Text overlay animator. Google Fonts and open foundries, <b>character-offset reveals</b>, marker effects and dotted-grid backdrops at vertical, square or wide ratios.'},
+ {id:'motus',file:'motus.html',name:'Motus',cat:'Mark choreography',build:'V2',size:'78 KB',io:'MP4 · Lottie',
+  desc:'Up to ten icons or logos set in motion — <b>pendulums, delayed orbits, linear and circular arrays</b>, stacks and collapses, with fine control over easing, spacing and overlap. Exports MP4 and Lottie JSON.'},
  {id:'cutout',file:'cutout_3.html',name:'Cutout',cat:'Area highlighter',build:'V3',size:'74 KB',io:'WebM · PNG seq',
   desc:'Point at what matters. Mask regions of an image that <b>pop out with staggered animation</b> — labels, glow, gradient fills and animated area-to-area paths.'},
  {id:'filament',file:'filament.html',name:'Filament',cat:'Line morph',build:'V1',size:'27 KB',io:'WebM',
   desc:'One unbroken line, redrawn between forms. <b>Single-stroke morphing</b> for logos, figures and abstract marks — the pen never lifts.'},
+ {id:'mora',file:'mora.html',name:'Mora',cat:'Time-offset grid',build:'V2',size:'103 KB',io:'MP4 · WebM',
+  desc:'Video split into rows, columns or grids, each cell running <b>a little ahead or behind</b> the last. Progressive delays, random widths, cylinder and sphere warps, offsets driven by hue or luma, and a 1-bit finish.'},
  {id:'vblur',file:'vector-blur-studio_1.html',name:'Vector Blur',cat:'Cinematic streaks',build:'V1',size:'39 KB',io:'WebM',
   desc:'Directional motion blur as a design material. <b>Velocity-field streaking</b> over stills and footage for speed, drift and long-exposure looks.'},
  {id:'zoetrope',file:'zoetrope.html',name:'Zoetrope',cat:'Ring carousel',build:'V5',size:'55 KB',io:'WebM · HTML',
@@ -352,6 +358,50 @@ const PV={
       const r2=r*0.52*(0.7+0.3*Math.sin(t*2.1+i*2));
       if(r2>2){ c.beginPath(); c.arc(x,y,r2,0,6.2832); i%3?c.stroke():c.fill(); }
     }
+  },
+  punctum(c,w,h,t,hot){
+    const n=24, cx=w/2, cy=h/2, R=Math.min(w,h)*0.62, ry=Math.sin(t*0.45)*0.9, cr=Math.cos(ry), sr=Math.sin(ry), ct=Math.cos(0.42), st=Math.sin(0.42), pts=[];
+    for(let j=0;j<n;j++)for(let i=0;i<n;i++){
+      const u=i/(n-1)*2-1, v=j/(n-1)*2-1;
+      const d=Math.exp(-((u-0.35*Math.sin(t*0.7))**2+(v-0.3*Math.cos(t*0.5))**2)*2.4)*0.7;
+      const x=u*0.8, y=v*0.55, z=d;
+      const X=x*cr+z*sr; let Z=-x*sr+z*cr; const Y=y*ct-Z*st; Z=y*st+Z*ct;
+      const s=2.4/(2.4+Z); pts.push([cx+X*R*s, cy+Y*R*s, Z, d]);
+    }
+    pts.sort((a,b)=>b[2]-a[2]);
+    for(const p of pts){
+      c.fillStyle=p[3]>0.28?(hot?ACC:INK):STONE;
+      c.globalAlpha=0.35+0.65*Math.min(1,p[3]*1.6+0.2);
+      c.beginPath(); c.arc(p[0],p[1],0.9+p[3]*2.6,0,6.2832); c.fill();
+    }
+    c.globalAlpha=1;
+  },
+  motus(c,w,h,t,hot){
+    const n=7, px=w/2, py=h*0.08;
+    for(let i=0;i<n;i++){
+      const L=h*(0.34+0.075*i), a=Math.sin(t*(2.1-i*0.11))*0.62;
+      const x=px+Math.sin(a)*L, y=py+Math.cos(a)*L, s=Math.min(w,h)*0.055;
+      c.fillStyle=i===n-1?(hot?ACC:INK):(i%2?STONE:INK);
+      c.globalAlpha=0.45+0.55*(i+1)/n;
+      c.save(); c.translate(x,y); c.rotate(a*0.8);
+      if(i%3===0){c.beginPath(); c.arc(0,0,s*0.55,0,6.2832); c.fill();}
+      else if(i%3===1){ if('roundRect'in c){c.beginPath(); c.roundRect(-s/2,-s/2,s,s,s*0.22); c.fill();} else c.fillRect(-s/2,-s/2,s,s); }
+      else {c.beginPath(); c.moveTo(0,-s*0.6); c.lineTo(s*0.55,s*0.4); c.lineTo(-s*0.55,s*0.4); c.closePath(); c.fill();}
+      c.restore();
+    }
+    c.globalAlpha=1;
+  },
+  mora(c,w,h,t,hot){
+    const cols=14, cw=w/cols, r=Math.min(w,h)*0.26;
+    for(let i=0;i<cols;i++){
+      const tt=t-i*0.2, x=w*0.5+Math.sin(tt*1.15)*w*0.24, y=h*0.5+Math.cos(tt*0.85)*h*0.18;
+      c.save(); c.beginPath(); c.rect(i*cw,0,cw-1,h); c.clip();
+      c.fillStyle=hot&&i%5===0?ACC:INK; c.beginPath(); c.arc(x,y,r,0,6.2832); c.fill();
+      c.restore();
+    }
+    c.fillStyle=STONE; c.globalAlpha=0.35;
+    for(let i=1;i<cols;i++) c.fillRect(i*cw-1,0,1,h);
+    c.globalAlpha=1;
   },
   fieldglyph(c,w,h,t,hot){
     const cell=Math.max(16,w/16), cols=Math.ceil(w/cell), rows=Math.ceil(h/cell);
@@ -510,7 +560,8 @@ TOOLS.forEach((T,i)=>{
   });
   list.appendChild(a);
 });
-$('#catCount').textContent='11 instruments — hover to inspect';
+$('#catCount').textContent=TOOLS.length+' instruments — hover to inspect';
+$('#toolCount').textContent=TOOLS.length;
 
 const vcv=$('#vCanvas'), vc=vcv.getContext('2d');
 function setActive(i){
